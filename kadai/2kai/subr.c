@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "buf.h"
 
 int hash(int num)
@@ -60,13 +61,39 @@ void remove_hash(struct buf_header *p)
     buf_free(p);
 }
 
-void add_hash(struct buf_header *h, int blkno, unsigned int stat, char *cache_data)
+void init_head_hash(struct buf_header *h, int blkno, unsigned int stat) {
+    h->bufno = -1;
+    h->blkno = blkno;
+    h->hash_fp = h;
+    h->hash_bp = h;
+    h->stat = stat;
+    h->free_fp = NULL;
+    h->free_bp = NULL;
+    h->cache_data = NULL;
+}
+
+void init_free_hash(struct buf_header *h, int blkno, unsigned int stat) {
+    h->bufno = -1;
+    h->blkno = blkno;
+    h->hash_fp = NULL;
+    h->hash_bp = NULL;
+    h->stat = stat;
+    h->free_fp = h;
+    h->free_bp = h;
+    h->cache_data = NULL;
+}
+
+void add_hash(struct buf_header *h, struct buf_header *tmp, int bufno,int blkno, unsigned int stat, char *cache_data)
 {
     // param h: header buffer
+    // param tmp : buffer to insert
+    // param bufnp : buffer number
     // param blkno : block number
     // param stat : status
     // param cache_data : cache data
-    struct buf_header *tmp;
+    // struct buf_header *tmp;
+    // tmp = malloc(sizeof(struct buf_header));
+    tmp->bufno = bufno;
     tmp->blkno = blkno;
     tmp->hash_fp = NULL;
     tmp->hash_bp = NULL;
@@ -75,13 +102,87 @@ void add_hash(struct buf_header *h, int blkno, unsigned int stat, char *cache_da
     tmp->free_bp = NULL;
     tmp->cache_data = cache_data;
     insert_hash(h, tmp, 0);
+    // printf("%d", h->hash_fp->blkno);
 }
 
-void print_hash(struct buf_header *h)
+void add_free(struct buf_header *h, struct buf_header *p) {
+    // insert p to free list's tail
+    p->free_bp = h->free_bp;
+    p->free_fp = h;
+    h->free_bp->free_bp = p;
+    h->free_bp = p;
+}
+
+void print_hash(struct buf_header *h, int idx)
 {
-    for (; h->hash_fp != h; h = h->hash_fp)
+    printf("%d: ", idx);
+    struct buf_header *tmp = h;
+
+    for (h = h->hash_fp; h != tmp; h = h->hash_fp)
     {
-        printf(" [ %d %s %d]", h->blkno, h->cache_data, h->stat);
+        char stat[7] = "------\0";
+        if (h->stat & STAT_LOCKED)
+            stat[5] = 'L';
+        if (h->stat & STAT_VALID)
+            stat[4] = 'V';
+        if (h->stat & STAT_DWR)
+            stat[3] = 'D';
+        if (h->stat & STAT_KRDWR)
+            stat[2] = 'K';
+        if (h->stat & STAT_WAITED)
+            stat[1] = 'W';
+        if (h->stat & STAT_OLD)
+            stat[0] = 'O';
+        printf("[%2d: %2d %s] ", h->bufno, h->blkno, stat);
+    }
+    printf("\n");
+}
+
+void print_buf(struct buf_header *h, int idx)
+{
+    int fp_cnt = idx % 3 + 1;
+    for (int i = 0; i < fp_cnt; i++)
+        h = h->hash_fp;
+    char stat[7] = "------\0";
+    if (h->stat & STAT_LOCKED)
+        stat[5] = 'L';
+    if (h->stat & STAT_VALID)
+        stat[4] = 'V';
+    if (h->stat & STAT_DWR)
+        stat[3] = 'D';
+    if (h->stat & STAT_KRDWR)
+        stat[2] = 'K';
+    if (h->stat & STAT_WAITED)
+        stat[1] = 'W';
+    if (h->stat & STAT_OLD)
+        stat[0] = 'O';
+
+    printf("[%2d: %2d %s]\n", h->bufno, h->blkno, stat);
+    return;
+}
+
+void print_free(struct buf_header *h) {
+    struct buf_header *tmp = h;
+    // int cnt = 0;
+    for (h = h->free_fp; h != tmp; h = h->free_fp)
+    {
+        char stat[7] = "------\0";
+        if (h->stat & STAT_LOCKED)
+            stat[5] = 'L';
+        if (h->stat & STAT_VALID)
+            stat[4] = 'V';
+        if (h->stat & STAT_DWR)
+            stat[3] = 'D';
+        if (h->stat & STAT_KRDWR)
+            stat[2] = 'K';
+        if (h->stat & STAT_WAITED)
+            stat[1] = 'W';
+        if (h->stat & STAT_OLD)
+            stat[0] = 'O';
+        printf("[%2d: %2d %s] ", h->bufno, h->blkno, stat);
+        // if (cnt == 3 || cnt == 7)
+        //     printf("\n");
+        // cnt++;
     }
     printf("\n");
 }

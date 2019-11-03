@@ -2,8 +2,14 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
-// #include <ctype.h>
-#include "buf.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX_ARGC 16
+#define MAX_ARGV 256
+
+extern char **environ;
 
 int getargs(int *argc, char *argv[]) {
     *argc = 0;
@@ -41,42 +47,24 @@ int getargs(int *argc, char *argv[]) {
     return -1;
 }
 
-void char2int(char *s) {
-    long tmp = 0;
-    tmp = strtol(s, NULL, 10);
-    printf("%ld", tmp);
-}
-
-char *command_arg(char *cmd) {
-    char *arg_num = "0";
-    if (strcmp(cmd, "help") == 0) {
-        arg_num = "0";
-    } else if (strcmp(cmd, "init") == 0) {
-        arg_num = "0";
-    } else if (strcmp(cmd, "buf") == 0) {
-        arg_num = "0 or over 0";
-    } else if (strcmp(cmd, "quit") == 0) {
-        exit(1);
-    }
-    return arg_num;
-}
-
-int main() {
-    int argc = 0;
-    char **argv;
-    for (int i = 0; i < MAX_ARGC; i++) {
-        argv[i] = malloc(sizeof(char) * MAX_ARGV);
-    }
-
-    printf("$ ");
-    while(getargs(&argc, argv) == 0) {
-        char *arg_num;
-        for (int i = 0; i <= argc; i++) {
-            printf("argc: %d, argv: %s\n", i, argv[i]);
+int main(int argc, char *argv[]) {
+    printf("mysh$ ");
+    int pid;
+    while (getargs(&argc, argv) == 0) {
+        if (strcmp(argv[0], "exit")) {
+            exit(0);
         }
-        arg_num = command_arg(argv[0]);
-        printf("%s\n", arg_num);
-        printf("$ ");
+        if ((pid = fork()) < 0) {
+            // error
+            fprintf(stderr, "error!");
+            exit(1);
+        } else if (pid == 0) {
+            execvp(argv[0], **argv);
+            //子プロセスの処理
+        } else {
+            wait(0);
+            //親プロセスの処理
+        }
+        printf("mysh$ ");
     }
-    return 0;
 }
