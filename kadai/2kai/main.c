@@ -59,6 +59,15 @@ void chach_args(int *argc, char *argv[]) {
 }
 */
 
+void help_command();
+void init_command();
+void buf_command(int argc, char *argv[]);
+void hash_command(int argc, char *argv[]);
+void free_command(int argc, char *argv[]);
+void set_command(int argc, char *argv[]);
+void reset_command(int argc, char *argv[]);
+void quit_command();
+
 int main()
 {
     // 61709736 Takanori Shirasaka
@@ -78,11 +87,31 @@ int main()
     printf("$ ");
     while(getargs(&argc, argv) == 0) {
         char *arg_num;
+        char cmd[MAX_ARGC];
+        memset(cmd, 0, sizeof cmd);
+        strncpy(cmd, *argv[0], sizeof cmd - 1);
         for (int i = 0; i <= argc; i++) {
             printf("argc: %d, argv: %s\n", i, argv[i]);
         }
-        // command_arg(&argc, argv);
-        // printf("%s\n", arg_num);
+        if (strcmp(cmd, "help") == 0) {
+            help_command();
+        } else if (strcmp(cmd, "init") == 0) {
+            init_command();
+        } else if (strcmp(cmd, "buf") == 0) {
+            buf_command(argc, **argv);
+        } else if (strcmp(cmd, "hash") == 0) {
+            hash_command(argc, **argv);
+        } else if (strcmp(cmd, "free") == 0) {
+            free_command(argc, **argv);
+        } else if (strcmp(cmd, "set") == 0) {
+            set_command(argc, **argv);
+        } else if (strcmp(cmd, "reset") == 0) {
+            reset_command(argc, **argv);
+        } else if (strcmp(cmd, "quit") == 0) {
+            quit_command();
+        } else {
+            fprintf(stderr, "command error! use $ help\n");
+        }
         printf("$ ");
     }
 

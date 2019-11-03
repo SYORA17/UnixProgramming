@@ -44,12 +44,15 @@ void print_buf(struct buf_header *h, int idx);
 void print_free(struct buf_header *h);
 void buf_free(struct buf_header *p);
 
-void char2long(char *s);
+long char2long(char *s);
 void help_command();
 void init_command();
 void buf_command(int argc, char *argv[]);
 void hash_command(int argc, char *argv[]);
 void free_command(int argc, char *argv[]);
+void set_command(int argc, char *argv[]);
+void reset_command(int argc, char *argv[]);
+void quit_command();
 
 void buf_proc(int, char *[]);
 void hash_proc(int, char *[]);

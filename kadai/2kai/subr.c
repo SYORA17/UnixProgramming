@@ -8,16 +8,16 @@ int hash(int num)
     return num % NHASH;
 }
 
-struct buf_header *hash_search(int blkno)
-{
-    int h;
-    struct buf_header *p;
 
-    h = hash(blkno);
-    for (p = hash_head[h].hash_fp; p != &hash_head[h]; p = p->hash_fp)
+struct buf_header *hash_search(int blkno) {
+    // struct buf_header *tmp;
+    int hash_no = hash(blkno);
+    struct buf_header *h = &hash_head[hash_no];
+    for (h = h->hash_fp; h != tmp; h = h->hash_fp)
     {
-        if (p->blkno == blkno)
-            return p;
+        if (h->blkno == blkno) {
+            return h;
+        }
     }
     return NULL;
 }
@@ -107,6 +107,7 @@ void add_hash(struct buf_header *h, struct buf_header *tmp, int bufno,int blkno,
 
 void add_free(struct buf_header *h, struct buf_header *p) {
     // insert p to free list's tail
+    p->stat |= STAT_LOCKED;
     p->free_bp = h->free_bp;
     p->free_fp = h;
     h->free_bp->free_bp = p;

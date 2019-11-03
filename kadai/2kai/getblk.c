@@ -5,10 +5,10 @@
 #include "buf.h"
 
 //char to long
-void char2long(char *s) {
+long char2long(char *s) {
     long tmp = 0;
     tmp = strtol(s, NULL, 10);
-    printf("%ld", tmp);
+    return tmp;
 }
 
 
@@ -26,6 +26,7 @@ void help_command()
     printf(" - brelse n : execute brelse by using blkno->n buffer's back pointer.\n");
     printf(" - set n stat : set status to blkno->n buffer.\n");
     printf(" - reset n stat : reset status to blkno->n buffer.\n");
+    printf("        (stat) -> [L, V, D, K, W, O]\n");
     printf(" - quit : quit this program.\n");
 }
 
@@ -33,7 +34,7 @@ void help_command()
 void init_command(int argc, char *argv[])
 {
     if (argc != 1) {
-        fprintf(stderr, "usage : init.\n");
+        fprintf(stderr, "usage : init\n");
         return;
     }
     for(int i = 0; i < NHASH; i++) {
@@ -75,7 +76,7 @@ void buf_command(int argc, char *argv[]) {
         } else {
             for (int i = 1; i < argc - 1; i++) {
                 long tmp;
-                tmp = cahr2long(argv[i]);
+                tmp = char2long(argv[i]);
                 if (tmp > NHASH -1 || tmp < 0) {
                     fprintf(stderr, "usage: buf [0, ... 11].\n");
                 } else {
@@ -98,7 +99,7 @@ void hash_command(int argc, char *argv[]) {
         } else {
             for (int i = 1; i < argc - 1; i++) {
                 long tmp;
-                tmp = cahr2long(argv[i]);
+                tmp = char2long(argv[i]);
                 if (tmp > NHASH -1 || tmp < 0) {
                     fprintf(stderr, "usage: hash [0, 1, 2, 3].\n");
                 } else {
@@ -122,16 +123,130 @@ void free_command(int argc, char *argv[]) {
 //getblk n
 struct buf_header *getblk(int blkno)
 {
-    // while(/* buffer not found*/1) {
-    // search_hash_que;
-    // if ()
-    // }
+    while(/* buffer not found*/1) {
+        if (blkno in hash queue) {
+            if (buf locked) {
+                // scenario 5
+                // sleep(event buffer becomes free);
+                continue;
+            }
+            //scenario 1
+            // REQ:search buf is in hash list and free.
+            // AFF:delete it from free list, and make it locked.
+            // return pointer to buf.
+        } else {
+            if (not buffer on free list) {
+                // scenario 4
+                // sleep(event any buffer becomes free);
+                continue;
+            }
+            // remove buffer from free list;
+            if (buffer marked for delayed write) {
+                // scenario 3
+                // asynchronous write buffer to disk;
+                continue;
+            }
+            // scenario 2
+            // remove buffer from old hash queue;
+            // put buffer onto new hash queue;
+            // return pointer to buffer;
+        }
+    }
 }
 
 // brelse n
+void brelse(struct buf_header *buf)
+{
+    // scenario 4
+    // wakeup all procs: event, waiting for any buffer to become free;
+    // scenario 5
+    // wakeup all procs: event, waiting for this buffer to become free;
+    // critical section
+    // raise processor execution level to block interrupts;
+    if (/*buffer contents valid and buffer not old.*/) {
+        // enqueue buffer at end of free list;
+    } else {
+        // scenario 3
+        // enqueue buffer at beginning of free list;
+    }
+    // lower processor execution level to allow interrupts;
+    // make buffer unlocked.
+}
 
 // set n stat
+void set_command(int argc, char *argv[]) {
+    // (stat) -> [L, V, D, K, W, O]
+    if (argc > 8 || argc < 3) {
+        fprintf(stderr, "usage : set n [L, V, D, K, W, O]\n");
+    } else {
+        long blkno;
+        blkno = char2long(argv[1]);
+        // if buffer exists
+        struct buf_header *tmp = hash_search(blkno);
+        if (tmp == NULL) {
+            fprintf(stderr, "coludn't find such a buffer.\n");
+            return;
+        }
+        // search by blkno
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "L") == 0)
+                tmp->stat |= STAT_LOCKED;
+            else if (strcmp(argv[i], "V") == 0)
+                tmp->stat |= STAT_VALID;
+            else if (strcmp(argv[i], "D") == 0)
+                tmp->stat |= STAT_DWR;
+            else if (strcmp(argv[i], "K") == 0)
+                tmp->stat |= STAT_KRDWR;
+            else if (strcmp(argv[i], "W") == 0)
+                tmp->stat |= STAT_WAITED;
+            else if (strcmp(argv[i], "O") == 0)
+                tmp->stat |= STAT_OLD;
+            else {
+                fprintf(stderr, "usage : set n [L, V, D, K, W, O]\n");
+                return;
+            }
+        }
+    }
+}
 
 // reset n stat
+void reset_command(int argc, char *argv[]) {
+    // (stat) -> [L, V, D, K, W, O]
+    if (argc > 8 || argc < 3) {
+        fprintf(stderr, "usage : reset n [L, V, D, K, W, O]\n");
+    } else {
+        long blkno;
+        blkno = char2long(argv[1]);
+        // if buffer exists
+        struct buf_header *tmp = hash_search(blkno);
+        if (tmp == NULL) {
+            fprintf(stderr, "coludn't find such a buffer.\n");
+            return;
+        }
+        // search by blkno
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "L") == 0)
+                tmp->stat &= ~STAT_LOCKED;
+            else if (strcmp(argv[i], "V") == 0)
+                tmp->stat &= ~STAT_VALID;
+            else if (strcmp(argv[i], "D") == 0)
+                tmp->stat &= ~STAT_DWR;
+            else if (strcmp(argv[i], "K") == 0)
+                tmp->stat &= ~STAT_KRDWR;
+            else if (strcmp(argv[i], "W") == 0)
+                tmp->stat &= ~STAT_WAITED;
+            else if (strcmp(argv[i], "O") == 0)
+                tmp->stat &= ~STAT_OLD;
+            else {
+                fprintf(stderr, "usage : reset n [L, V, D, K, W, O]\n");
+                return;
+            }
+        }
+    }
+}
 
 // quit
+void quit_command()
+{
+    exit(0);
+}
