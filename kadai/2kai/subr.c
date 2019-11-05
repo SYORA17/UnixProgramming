@@ -13,6 +13,7 @@ struct buf_header *hash_search(int blkno) {
     // struct buf_header *tmp;
     int hash_no = hash(blkno);
     struct buf_header *h = &hash_head[hash_no];
+    struct buf_header *tmp = h;
     for (h = h->hash_fp; h != tmp; h = h->hash_fp)
     {
         if (h->blkno == blkno) {
@@ -107,10 +108,10 @@ void add_hash(struct buf_header *h, struct buf_header *tmp, int bufno,int blkno,
 
 void add_free(struct buf_header *h, struct buf_header *p) {
     // insert p to free list's tail
-    p->stat |= STAT_LOCKED;
+    p->stat &= ~STAT_LOCKED;
     p->free_bp = h->free_bp;
     p->free_fp = h;
-    h->free_bp->free_bp = p;
+    h->free_bp->free_fp = p;
     h->free_bp = p;
 }
 
@@ -118,23 +119,23 @@ void print_hash(struct buf_header *h, int idx)
 {
     printf("%d: ", idx);
     struct buf_header *tmp = h;
-
-    for (h = h->hash_fp; h != tmp; h = h->hash_fp)
+    tmp = h;
+    for (tmp = tmp->hash_fp; tmp != h; tmp = tmp->hash_fp)
     {
         char stat[7] = "------\0";
-        if (h->stat & STAT_LOCKED)
+        if (tmp->stat & STAT_LOCKED)
             stat[5] = 'L';
-        if (h->stat & STAT_VALID)
+        if (tmp->stat & STAT_VALID)
             stat[4] = 'V';
-        if (h->stat & STAT_DWR)
+        if (tmp->stat & STAT_DWR)
             stat[3] = 'D';
-        if (h->stat & STAT_KRDWR)
+        if (tmp->stat & STAT_KRDWR)
             stat[2] = 'K';
-        if (h->stat & STAT_WAITED)
+        if (tmp->stat & STAT_WAITED)
             stat[1] = 'W';
-        if (h->stat & STAT_OLD)
+        if (tmp->stat & STAT_OLD)
             stat[0] = 'O';
-        printf("[%2d: %2d %s] ", h->bufno, h->blkno, stat);
+        printf("[%2d: %2d %s] ", tmp->bufno, tmp->blkno, stat);
     }
     printf("\n");
 }
@@ -164,9 +165,10 @@ void print_buf(struct buf_header *h, int idx)
 
 void print_free(struct buf_header *h) {
     struct buf_header *tmp = h;
-    // int cnt = 0;
+    int cnt = 0;
     for (h = h->free_fp; h != tmp; h = h->free_fp)
     {
+        h = h->free_fp;
         char stat[7] = "------\0";
         if (h->stat & STAT_LOCKED)
             stat[5] = 'L';
@@ -181,9 +183,9 @@ void print_free(struct buf_header *h) {
         if (h->stat & STAT_OLD)
             stat[0] = 'O';
         printf("[%2d: %2d %s] ", h->bufno, h->blkno, stat);
-        // if (cnt == 3 || cnt == 7)
-        //     printf("\n");
-        // cnt++;
+        if (cnt == 3 || cnt == 7)
+            printf("\n");
+        cnt++;
     }
     printf("\n");
 }

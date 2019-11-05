@@ -46,6 +46,7 @@ void buf_free(struct buf_header *p);
 
 long char2long(char *s);
 void help_command();
+void init();
 void init_command();
 void buf_command(int argc, char *argv[]);
 void hash_command(int argc, char *argv[]);

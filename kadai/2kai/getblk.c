@@ -89,7 +89,7 @@ void buf_command(int argc, char *argv[]) {
 
 //hash [n ...]
 void hash_command(int argc, char *argv[]) {
-    if (argc == 1) {
+    if (argc == 0) {
         for (int i = 0; i < NHASH; i++) {
             print_hash(&hash_head[i], i);
         }
@@ -97,9 +97,10 @@ void hash_command(int argc, char *argv[]) {
         if (argc > NHASH) {
             fprintf(stderr, "usage: hash [0, 1, 2, 3].\n");
         } else {
-            for (int i = 1; i < argc - 1; i++) {
+            for (int i = 1; i <= argc; i++) {
                 long tmp;
                 tmp = char2long(argv[i]);
+                // printf("tmp : %ld", tmp);
                 if (tmp > NHASH -1 || tmp < 0) {
                     fprintf(stderr, "usage: hash [0, 1, 2, 3].\n");
                 } else {
@@ -113,7 +114,7 @@ void hash_command(int argc, char *argv[]) {
 
 //free [n ...]
 void free_command(int argc, char *argv[]) {
-    if (argc != 1) {
+    if (argc != 0) {
         fprintf(stderr, "usage : free\n");
     } else {
         print_free(&free_head);
@@ -121,9 +122,10 @@ void free_command(int argc, char *argv[]) {
 }
 
 //getblk n
+/*
 struct buf_header *getblk(int blkno)
 {
-    while(/* buffer not found*/1) {
+    while(buffer not found1) {
         if (blkno in hash queue) {
             if (buf locked) {
                 // scenario 5
@@ -153,8 +155,10 @@ struct buf_header *getblk(int blkno)
         }
     }
 }
+*/
 
 // brelse n
+/*
 void brelse(struct buf_header *buf)
 {
     // scenario 4
@@ -163,7 +167,7 @@ void brelse(struct buf_header *buf)
     // wakeup all procs: event, waiting for this buffer to become free;
     // critical section
     // raise processor execution level to block interrupts;
-    if (/*buffer contents valid and buffer not old.*/) {
+    if (/*buffer contents valid and buffer not old.) {
         // enqueue buffer at end of free list;
     } else {
         // scenario 3
@@ -172,6 +176,7 @@ void brelse(struct buf_header *buf)
     // lower processor execution level to allow interrupts;
     // make buffer unlocked.
 }
+*/
 
 // set n stat
 void set_command(int argc, char *argv[]) {
