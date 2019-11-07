@@ -2,13 +2,18 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+#include <ctype.h>
 #include "buf.h"
 
 //char to long
 long char2long(char *s) {
     long tmp = 0;
-    tmp = strtol(s, NULL, 10);
-    return tmp;
+    if (isdigit(s[0])) {
+        tmp = strtol(s, NULL, 10);
+        return tmp;
+    }
+    else
+        return -1;
 }
 
 
@@ -31,12 +36,14 @@ void help_command()
 }
 
 //init
-void init_command(int argc, char *argv[])
+void init(/*int argc, char *argv[]*/)
 {
-    if (argc != 0) {
+    /*
+    if (argc != 1) {
         fprintf(stderr, "usage : init\n");
         return;
     }
+    */
     for(int i = 0; i < NHASH; i++) {
         hash_head[i] = *(struct buf_header *)malloc(sizeof(struct buf_header));
     }
@@ -52,7 +59,7 @@ void init_command(int argc, char *argv[])
     int init_nums[FIRST_BUF_NUM] = {28, 4,64, 17, 5, 97, 98, 50, 10, 3, 35, 99};
     for (int i = 0; i < FIRST_BUF_NUM; i++) {
         int head_idx = i / 3;
-        add_hash(&hash_head[head_idx], &bufs[i], i, init_nums[i], STAT_VALID, "hi");
+        add_hash(&hash_head[head_idx], &bufs[i], i, init_nums[i], (STAT_VALID | STAT_LOCKED), "hi");
     }
     add_free(&free_head, &bufs[9]);
     add_free(&free_head, &bufs[4]);
@@ -63,24 +70,64 @@ void init_command(int argc, char *argv[])
     return;
 }
 
+void init_command(int argc, char *argv[])
+{
+    if (argc != 0) {
+        fprintf(stderr, "usage : init\n");
+        return;
+    }
+    /*
+    // free all bufs;
+    struct buf_header *p;
+    for (int i = 0; i < NHASH; i++) {
+        printf("hi");
+        p = &hash_head[i];
+        do {
+            buf_free(p->hash_fp);
+        } while(p->hash_fp != p);
+        // buf_free(p);
+    }
+    printf("done.");
+    buf_free(&free_head);
+    */
+    init_head_hash(&hash_head[0], 0, STAT_VALID);
+    init_head_hash(&hash_head[1], 0, STAT_VALID);
+    init_head_hash(&hash_head[2], 0, STAT_VALID);
+    init_head_hash(&hash_head[3], 0, STAT_VALID);
+    init_free_hash(&free_head, 0, STAT_VALID);
+    int init_nums[FIRST_BUF_NUM] = {28, 4,64, 17, 5, 97, 98, 50, 10, 3, 35, 99};
+    for (int i = 0; i < FIRST_BUF_NUM; i++) {
+        int head_idx = i / 3;
+        add_hash(&hash_head[head_idx], &bufs[i], i, init_nums[i], (STAT_VALID | STAT_LOCKED), "hi");
+    }
+    add_free(&free_head, &bufs[9]);
+    add_free(&free_head, &bufs[4]);
+    add_free(&free_head, &bufs[1]);
+    add_free(&free_head, &bufs[0]);
+    add_free(&free_head, &bufs[5]);
+    add_free(&free_head, &bufs[8]);
+    printf("just initialized!\n");
+    return;
+}
+
 //buf [n ...]
 void buf_command(int argc, char *argv[]) {
-    if (argc == 1) {
+    if (argc == 0) {
         // error occurs?
         for (int i = 0; i < FIRST_BUF_NUM; i++) {
-            print_buf(&hash_head[i/3],i);
+            print_buf(i);
         }
     } else {
         if (argc > FIRST_BUF_NUM) {
             fprintf(stderr, "usage: buf [0, ... 11].\n");
         } else {
-            for (int i = 1; i < argc - 1; i++) {
+            for (int i = 1; i <= argc; i++) {
                 long tmp;
                 tmp = char2long(argv[i]);
-                if (tmp > NHASH -1 || tmp < 0) {
+                if (tmp >= FIRST_BUF_NUM || tmp < 0) {
                     fprintf(stderr, "usage: buf [0, ... 11].\n");
                 } else {
-                    print_buf(&hash_head[tmp/3], tmp);
+                    print_buf(tmp);
                 }
             }
         }
@@ -126,7 +173,7 @@ struct buf_header *getblk(int blkno)
 {
     int head_idx = hash(blkno);
     struct buf_header *p;
-    while(1) {//buffer not found
+    do {//buffer not found
         p = hash_search(blkno);
         if (p != NULL) {
             if (p->stat & STAT_LOCKED) {
@@ -134,9 +181,10 @@ struct buf_header *getblk(int blkno)
                 // sleep(event buffer becomes free);
                 printf("Process goes to sleep\n");
                 p->stat = STAT_LOCKED | STAT_WAITED | STAT_VALID;
-                brelse(p);
-                p->stat = STAT_VALID;
-                continue;
+                // brelse(p);
+                // p->stat = STAT_VALID;
+                // continue;
+                return NULL;
             }
             //scenario 1
             // REQ:search buf is in hash list and free.
@@ -151,15 +199,16 @@ struct buf_header *getblk(int blkno)
                 // sleep(event any buffer becomes free);
                 printf("Process goes to sleep\n");
                 brelse(p);
-                continue;
+                // continue;
+                return NULL;
             }
             // remove buffer from free list;
             if (isBuffer_freelist(&free_head) == 0) {
                 // scenario 3
                 // asynchronous write buffer to disk;
                 p = remove_free_top(&free_head);
-                p->stat = STAT_LOCKED | STAT_KRDWR | STAT_OLD;
-                p->stat = STAT_LOCKED | STAT_OLD;
+                p->stat = STAT_LOCKED | STAT_VALID | STAT_KRDWR | STAT_OLD;
+                // p->stat = STAT_LOCKED | STAT_OLD;
                 continue;
             }
             // scenario 2
@@ -171,7 +220,8 @@ struct buf_header *getblk(int blkno)
             add_hash(&hash_head[head_idx], p, p->bufno, blkno, (STAT_VALID | STAT_LOCKED), "hi");
             return p;
         }
-    }
+    } while(p->blkno != blkno);
+    return NULL;
 }
 
 void getblk_command(int argc, char *argv[]) {
@@ -189,24 +239,26 @@ void getblk_command(int argc, char *argv[]) {
 // brelse n
 void brelse(struct buf_header *buf)
 {
+    if (buf == NULL) {
+        // scenario 4
+        // wakeup all procs: event, waiting for any buffer to become free;
+        printf("Wakeup processes waiting for any buffer\n");
+        return;
+    }
     int hash_no = hash(buf->blkno);
     if (isBuffer_hashlist(&hash_head[hash_no], buf)) {
         // scenario 5
         // wakeup all procs: event, waiting for this buffer to become free;
         printf("Wakeup processes waiting for buffer of blkno %d\n", buf->blkno);
-    } else {
-        // scenario 4
-        // wakeup all procs: event, waiting for any buffer to become free;
-        printf("Wakeup processes waiting for any buffer\n");
     }
     // raise_cpu_lebel();
-    if (buf->stat & (STAT_VALID & ~STAT_OLD)) {
-        printf("enqueue buffer at end of free list\n");
-        add_free(&free_head, buf);
-    } else {
+    if ((buf->stat & STAT_VALID) && (buf->stat & STAT_OLD)) {
         // scenario 3
         printf("enqueue buffer at beginning of free list\n");
         add_free_top(&free_head, buf);
+    } else {
+        printf("enqueue buffer at end of free list\n");
+        add_free(&free_head, buf);
     }
     // lower_cpu_level();
     // make buffer unlocked.
@@ -244,7 +296,7 @@ void set_command(int argc, char *argv[]) {
             return;
         }
         // search by blkno
-        for (int i = 2; i < argc; i++) {
+        for (int i = 2; i <= argc; i++) {
             if (strcmp(argv[i], "L") == 0)
                 tmp->stat |= STAT_LOCKED;
             else if (strcmp(argv[i], "V") == 0)
@@ -280,7 +332,7 @@ void reset_command(int argc, char *argv[]) {
             return;
         }
         // search by blkno
-        for (int i = 2; i < argc; i++) {
+        for (int i = 2; i <= argc; i++) {
             if (strcmp(argv[i], "L") == 0)
                 tmp->stat &= ~STAT_LOCKED;
             else if (strcmp(argv[i], "V") == 0)

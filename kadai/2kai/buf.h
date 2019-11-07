@@ -32,6 +32,7 @@ struct buf_header bufs[FIRST_BUF_NUM];
 
 int hash(int num);
 struct buf_header *hash_search(int blkno);
+struct buf_header *hash_search_bufno(int bufno);
 void insert_head(struct buf_header *h, struct buf_header *p);
 void insert_tail(struct buf_header *h, struct buf_header *p);
 void insert_hash(struct buf_header *h, struct buf_header *p, int where);
@@ -46,14 +47,14 @@ void add_hash(struct buf_header *h, struct buf_header *tmp, int bufno,int blkno,
 void add_free(struct buf_header *h, struct buf_header *p);
 void add_free_top(struct buf_header *h, struct buf_header *p);
 void print_hash(struct buf_header *h, int idx);
-void print_buf(struct buf_header *h, int idx);
+int print_buf(int bufno);
 void print_free(struct buf_header *h);
 void buf_free(struct buf_header *p);
 
 long char2long(char *s);
 void help_command();
 void init();
-void init_command();
+void init_command(int argc, char *argv[]);
 void buf_command(int argc, char *argv[]);
 void hash_command(int argc, char *argv[]);
 void free_command(int argc, char *argv[]);

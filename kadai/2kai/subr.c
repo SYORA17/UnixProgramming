@@ -23,6 +23,22 @@ struct buf_header *hash_search(int blkno) {
     return NULL;
 }
 
+struct buf_header *hash_search_bufno(int bufno) {
+    struct buf_header *h;
+    struct buf_header *p;
+    for (int i = 0; i < NHASH; i++) {
+        h = &hash_head[i];
+        for (p = h->hash_fp; p != h; p = p->hash_fp)
+        {
+            if (p->bufno == bufno) {
+                return p;
+            }
+        }
+    }
+    return NULL;
+}
+
+
 void insert_head(struct buf_header *h, struct buf_header *p)
 {
     // param h: head pointer
@@ -145,7 +161,7 @@ void add_hash(struct buf_header *h, struct buf_header *tmp, int bufno,int blkno,
 
 void add_free(struct buf_header *h, struct buf_header *p) {
     // insert p to free list's tail
-    p->stat &= ~STAT_LOCKED;
+    p->stat = STAT_VALID;
     p->free_bp = h->free_bp;
     p->free_fp = h;
     h->free_bp->free_fp = p;
@@ -154,7 +170,7 @@ void add_free(struct buf_header *h, struct buf_header *p) {
 
 void add_free_top(struct buf_header *h, struct buf_header *p) {
     // insert p to free list's top
-    p->stat &= ~STAT_LOCKED;
+    p->stat = STAT_VALID;
     p->free_bp = h;
     p->free_fp = h->free_fp;
     h->free_fp->free_bp = p;
@@ -186,27 +202,34 @@ void print_hash(struct buf_header *h, int idx)
     printf("\n");
 }
 
-void print_buf(struct buf_header *h, int idx)
+//print by blkno
+// -1 : error, 1 : no error
+int print_buf(int bufno)
 {
-    int fp_cnt = idx % 3 + 1;
-    for (int i = 0; i < fp_cnt; i++)
-        h = h->hash_fp;
+    // int fp_cnt = idx % 3 + 1;
+    // for (int i = 0; i < fp_cnt; i++)
+    //     h = h->hash_fp;
+    struct buf_header *p = hash_search_bufno(bufno);
+    if (p == NULL) {
+        fprintf(stderr, "coludn't find such a buffer.\n");
+        return -1;
+    }
     char stat[7] = "------\0";
-    if (h->stat & STAT_LOCKED)
+    if (p->stat & STAT_LOCKED)
         stat[5] = 'L';
-    if (h->stat & STAT_VALID)
+    if (p->stat & STAT_VALID)
         stat[4] = 'V';
-    if (h->stat & STAT_DWR)
+    if (p->stat & STAT_DWR)
         stat[3] = 'D';
-    if (h->stat & STAT_KRDWR)
+    if (p->stat & STAT_KRDWR)
         stat[2] = 'K';
-    if (h->stat & STAT_WAITED)
+    if (p->stat & STAT_WAITED)
         stat[1] = 'W';
-    if (h->stat & STAT_OLD)
+    if (p->stat & STAT_OLD)
         stat[0] = 'O';
 
-    printf("[%2d: %2d %s]\n", h->bufno, h->blkno, stat);
-    return;
+    printf("[%2d: %2d %s]\n", p->bufno, p->blkno, stat);
+    return 1;
 }
 
 void print_free(struct buf_header *h) {
@@ -237,6 +260,8 @@ void print_free(struct buf_header *h) {
 
 void buf_free(struct buf_header *p)
 {
+    remove_free(p);
+    remove_hash(p);
     free(&(p->blkno));
     free(p->cache_data);
     free(&(p->stat));
