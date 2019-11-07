@@ -66,12 +66,13 @@ void chach_args(int *argc, char *argv[]) {
 
 int main()
 {
+    int i;
     // 61709736 Takanori Shirasaka
     init();
     int argc = 0;
     char **argv;
     argv = malloc(MAX_ARGC * sizeof(char *));
-    for (int i = 0; i < MAX_ARGC; i++) {
+    for (i = 0; i < MAX_ARGC; i++) {
         argv[i] = malloc(sizeof(char) * MAX_ARGV);
     }
 
@@ -81,9 +82,6 @@ int main()
         char cmd[MAX_ARGC];
         memset(cmd, 0, sizeof cmd);
         strncpy(cmd, argv[0], sizeof cmd - 1);
-        // for (int i = 0; i <= argc; i++) {
-        //     printf("argc: %d, argv: %s\n", i, argv[i]);
-        // }
         if (strcmp(cmd, "help") == 0) {
             help_command();
         } else if (strcmp(cmd, "init") == 0) {

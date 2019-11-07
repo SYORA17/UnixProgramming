@@ -24,7 +24,8 @@ int prev[NNODE]; // last node in current shortest path
 //initialization
 void init(int root)
 {
-    for (int i = 0; i < NNODE; i++) {
+    int i;
+    for ( i = 0; i < NNODE; i++) {
         N[i] = INF;
         N_FLAG[i] = 0;
         if (i == root) {
@@ -33,7 +34,7 @@ void init(int root)
         }
     }
 
-    for (int i = 0; i < NNODE; i++)
+    for ( i = 0; i < NNODE; i++)
     {
         if (cost[N[0]][i] != INF) {
             dist[i] = cost[N[0]][i];
@@ -67,6 +68,7 @@ void print_func(int root) {
 // main algorithm
 void djikstra(int root) {
     init(root);
+    int i;
 
     while(N[NNODE - 1] == INF) {
         int min_cost = INF;
@@ -76,21 +78,21 @@ void djikstra(int root) {
         int n_idx = 0;
 
         //find minimum cost node
-        for (int i = 0; i < NNODE; i++) {
+        for ( i = 0; i < NNODE; i++) {
             if (N_FLAG[i] == 0 && dist[i] < min_cost){
                 min_cost = dist[i];
                 min_idx = i;
             }
         }
 
-        for (int i = 0; i < NNODE; i++) {
+        for ( i = 0; i < NNODE; i++) {
             n_idx += N_FLAG[i];
         }
         N[n_idx] = min_idx;
         N_FLAG[min_idx] = 1;
 
         // caliculate new cost
-        for (int i = 0; i < NNODE; i++) {
+        for (i = 0; i < NNODE; i++) {
             if (N_FLAG[i] == 1){
                 continue;
             }
@@ -109,7 +111,8 @@ void djikstra(int root) {
 
 // main method
 int main() {
-    for (int i = 0; i < NNODE; i++) {
+    int i;
+    for (i = 0; i < NNODE; i++) {
         djikstra(i);
     }
 }

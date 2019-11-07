@@ -38,13 +38,14 @@ void help_command()
 //init
 void init(/*int argc, char *argv[]*/)
 {
+    int i;
     /*
     if (argc != 1) {
         fprintf(stderr, "usage : init\n");
         return;
     }
     */
-    for(int i = 0; i < NHASH; i++) {
+    for(i = 0; i < NHASH; i++) {
         hash_head[i] = *(struct buf_header *)malloc(sizeof(struct buf_header));
     }
     free_head = *(struct buf_header *)malloc(sizeof(struct buf_header));
@@ -53,11 +54,11 @@ void init(/*int argc, char *argv[]*/)
     init_head_hash(&hash_head[2], 0, STAT_VALID);
     init_head_hash(&hash_head[3], 0, STAT_VALID);
     init_free_hash(&free_head, 0, STAT_VALID);
-    for (int i = 0; i < FIRST_BUF_NUM; i++) {
+    for (i = 0; i < FIRST_BUF_NUM; i++) {
         bufs[i] = *(struct buf_header *)malloc(sizeof(struct buf_header));
     }
     int init_nums[FIRST_BUF_NUM] = {28, 4,64, 17, 5, 97, 98, 50, 10, 3, 35, 99};
-    for (int i = 0; i < FIRST_BUF_NUM; i++) {
+    for (i = 0; i < FIRST_BUF_NUM; i++) {
         int head_idx = i / 3;
         add_hash(&hash_head[head_idx], &bufs[i], i, init_nums[i], (STAT_VALID | STAT_LOCKED), "hi");
     }
@@ -72,31 +73,18 @@ void init(/*int argc, char *argv[]*/)
 
 void init_command(int argc, char *argv[])
 {
+    int i;
     if (argc != 0) {
         fprintf(stderr, "usage : init\n");
         return;
     }
-    /*
-    // free all bufs;
-    struct buf_header *p;
-    for (int i = 0; i < NHASH; i++) {
-        printf("hi");
-        p = &hash_head[i];
-        do {
-            buf_free(p->hash_fp);
-        } while(p->hash_fp != p);
-        // buf_free(p);
-    }
-    printf("done.");
-    buf_free(&free_head);
-    */
     init_head_hash(&hash_head[0], 0, STAT_VALID);
     init_head_hash(&hash_head[1], 0, STAT_VALID);
     init_head_hash(&hash_head[2], 0, STAT_VALID);
     init_head_hash(&hash_head[3], 0, STAT_VALID);
     init_free_hash(&free_head, 0, STAT_VALID);
     int init_nums[FIRST_BUF_NUM] = {28, 4,64, 17, 5, 97, 98, 50, 10, 3, 35, 99};
-    for (int i = 0; i < FIRST_BUF_NUM; i++) {
+    for (i = 0; i < FIRST_BUF_NUM; i++) {
         int head_idx = i / 3;
         add_hash(&hash_head[head_idx], &bufs[i], i, init_nums[i], (STAT_VALID | STAT_LOCKED), "hi");
     }
@@ -112,16 +100,17 @@ void init_command(int argc, char *argv[])
 
 //buf [n ...]
 void buf_command(int argc, char *argv[]) {
+    int i;
     if (argc == 0) {
         // error occurs?
-        for (int i = 0; i < FIRST_BUF_NUM; i++) {
+        for (i = 0; i < FIRST_BUF_NUM; i++) {
             print_buf(i);
         }
     } else {
         if (argc > FIRST_BUF_NUM) {
             fprintf(stderr, "usage: buf [0, ... 11].\n");
         } else {
-            for (int i = 1; i <= argc; i++) {
+            for (i = 1; i <= argc; i++) {
                 long tmp;
                 tmp = char2long(argv[i]);
                 if (tmp >= FIRST_BUF_NUM || tmp < 0) {
@@ -136,15 +125,16 @@ void buf_command(int argc, char *argv[]) {
 
 //hash [n ...]
 void hash_command(int argc, char *argv[]) {
+    int i;
     if (argc == 0) {
-        for (int i = 0; i < NHASH; i++) {
+        for (i = 0; i < NHASH; i++) {
             print_hash(&hash_head[i], i);
         }
     } else {
         if (argc > NHASH) {
             fprintf(stderr, "usage: hash [0, 1, 2, 3].\n");
         } else {
-            for (int i = 1; i <= argc; i++) {
+            for (i = 1; i <= argc; i++) {
                 long tmp;
                 tmp = char2long(argv[i]);
                 // printf("tmp : %ld", tmp);
@@ -283,6 +273,7 @@ void brelse_command(int argc, char *argv[]) {
 
 // set n stat
 void set_command(int argc, char *argv[]) {
+    int i;
     // (stat) -> [L, V, D, K, W, O]
     if (argc > 7 || argc < 2) {
         fprintf(stderr, "usage : set n [L, V, D, K, W, O]\n");
@@ -296,7 +287,7 @@ void set_command(int argc, char *argv[]) {
             return;
         }
         // search by blkno
-        for (int i = 2; i <= argc; i++) {
+        for (i = 2; i <= argc; i++) {
             if (strcmp(argv[i], "L") == 0)
                 tmp->stat |= STAT_LOCKED;
             else if (strcmp(argv[i], "V") == 0)
@@ -319,6 +310,7 @@ void set_command(int argc, char *argv[]) {
 
 // reset n stat
 void reset_command(int argc, char *argv[]) {
+    int i;
     // (stat) -> [L, V, D, K, W, O]
     if (argc > 7 || argc < 2) {
         fprintf(stderr, "usage : reset n [L, V, D, K, W, O]\n");
@@ -332,7 +324,7 @@ void reset_command(int argc, char *argv[]) {
             return;
         }
         // search by blkno
-        for (int i = 2; i <= argc; i++) {
+        for (i = 2; i <= argc; i++) {
             if (strcmp(argv[i], "L") == 0)
                 tmp->stat &= ~STAT_LOCKED;
             else if (strcmp(argv[i], "V") == 0)
