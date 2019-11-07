@@ -59,7 +59,44 @@ void remove_hash(struct buf_header *p)
     // param p: pointer that will be removed.
     p->hash_bp->hash_fp = p->hash_fp;
     p->hash_fp->hash_bp = p->hash_bp;
-    buf_free(p);
+    // buf_free(p);
+}
+
+void remove_free(struct buf_header *p)
+{
+    p->free_bp->free_fp = p->free_fp;
+    p->free_fp->free_bp = p->free_bp;
+}
+
+struct buf_header *remove_free_top(struct buf_header *h)
+{
+    struct buf_header *p;
+    p = h->free_fp;
+    remove_free(p);
+    return p;
+}
+
+int isBuffer_hashlist(struct buf_header *h, struct buf_header *p)
+{
+    // -1 :no , 1 :yes
+    struct buf_header *tmp = h;
+    for (tmp = tmp->hash_fp; tmp != h; tmp = tmp->hash_fp) {
+        if (tmp == p)
+            return 1;
+    }
+    return -1;
+}
+
+int isBuffer_freelist(struct buf_header *h)
+{
+    // -1 represents no buffer
+    // 0 represents top buffer is STAT_DWR
+    // 1 represetns top buffer is not STAT_DWR
+    if (h->free_fp == h)
+        return -1;
+    if (h->free_fp->stat & STAT_DWR)
+        return 0;
+    return 1;
 }
 
 void init_head_hash(struct buf_header *h, int blkno, unsigned int stat) {
@@ -115,6 +152,15 @@ void add_free(struct buf_header *h, struct buf_header *p) {
     h->free_bp = p;
 }
 
+void add_free_top(struct buf_header *h, struct buf_header *p) {
+    // insert p to free list's top
+    p->stat &= ~STAT_LOCKED;
+    p->free_bp = h;
+    p->free_fp = h->free_fp;
+    h->free_fp->free_bp = p;
+    h->free_fp = p;
+}
+
 void print_hash(struct buf_header *h, int idx)
 {
     printf("%d: ", idx);
@@ -168,7 +214,6 @@ void print_free(struct buf_header *h) {
     int cnt = 0;
     for (h = h->free_fp; h != tmp; h = h->free_fp)
     {
-        h = h->free_fp;
         char stat[7] = "------\0";
         if (h->stat & STAT_LOCKED)
             stat[5] = 'L';

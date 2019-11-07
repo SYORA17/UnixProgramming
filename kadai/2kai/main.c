@@ -141,6 +141,10 @@ int main()
             hash_command(argc, argv);
         } else if (strcmp(cmd, "free") == 0) {
             free_command(argc, argv);
+        } else if (strcmp(cmd, "getblk") == 0) {
+            getblk_command(argc, argv);
+        } else if (strcmp(cmd, "brelse") == 0) {
+            brelse_command(argc, argv);
         } else if (strcmp(cmd, "set") == 0) {
             set_command(argc, argv);
         } else if (strcmp(cmd, "reset") == 0) {
