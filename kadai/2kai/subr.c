@@ -24,9 +24,10 @@ struct buf_header *hash_search(int blkno) {
 }
 
 struct buf_header *hash_search_bufno(int bufno) {
+    int i;
     struct buf_header *h;
     struct buf_header *p;
-    for (int i = 0; i < NHASH; i++) {
+    for (i = 0; i < NHASH; i++) {
         h = &hash_head[i];
         for (p = h->hash_fp; p != h; p = p->hash_fp)
         {
@@ -206,9 +207,6 @@ void print_hash(struct buf_header *h, int idx)
 // -1 : error, 1 : no error
 int print_buf(int bufno)
 {
-    // int fp_cnt = idx % 3 + 1;
-    // for (int i = 0; i < fp_cnt; i++)
-    //     h = h->hash_fp;
     struct buf_header *p = hash_search_bufno(bufno);
     if (p == NULL) {
         fprintf(stderr, "coludn't find such a buffer.\n");

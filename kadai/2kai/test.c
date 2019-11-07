@@ -62,16 +62,17 @@ char *command_arg(char *cmd) {
 }
 
 int main() {
+    int i;
     int argc = 0;
     char **argv;
-    for (int i = 0; i < MAX_ARGC; i++) {
+    for (i = 0; i < MAX_ARGC; i++) {
         argv[i] = malloc(sizeof(char) * MAX_ARGV);
     }
 
     printf("$ ");
     while(getargs(&argc, argv) == 0) {
         char *arg_num;
-        for (int i = 0; i <= argc; i++) {
+        for (i = 0; i <= argc; i++) {
             printf("argc: %d, argv: %s\n", i, argv[i]);
         }
         arg_num = command_arg(argv[0]);
