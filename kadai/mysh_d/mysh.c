@@ -28,21 +28,23 @@ char *pr_ttype(int ttype) {
     int i;
     for (i = 0; i < TKN_NUMS; i++) {
         if (tkn[i].type == ttype) {
-            fprintf(stderr, "%s", tkn[i].name);
-            return;
+            return tkn[i].name;
         }
     }
-    fprintf(stderr, "NULL");
-    return;
+    return tkn[i].name;
 }
 
 int gettoken(char *token, int len)
 {
+    // fprintf(stderr, "got token: %s\n", token);
+    char tmp_c;
     int c, i = 0, type = TKN_NONE;
     char *p = token;
 
-    *p = '\0';
-    while (isblank(c = getchar()));
+    // while (isblank(c = getchar()));
+    // c = getchar();
+    tmp_c = token[0];
+    c = (int)tmp_c;
 
     // if special character, return the corresponding type
     switch(c) {
@@ -57,27 +59,30 @@ int gettoken(char *token, int len)
         case '<':
             return TKN_REDIR_IN;
         case '>':
-            if ((c = getchar()) == '>')
+            if (token[1] == '>')
                 return TKN_REDIR_APPEND;
-            ungetc(c, stdin);
+            //ungetc(c, stdin);
             return TKN_REDIR_OUT;
         default:
             break;
     }
 
     // normal character is input
-    ungetc(c, stdin);
+    // ungetc(c, stdin);
     for (i = 0; i < len - 1; i++) {
-        c = getchar();
-        if (c != EOF && c != '\n' && c != '&' && c != '<' && c != '>' && c != '|' && !isblank(c))
+        c = token[i];
+        // c = getchar();
+        // fprintf(stderr, "%c", c);
+        if (c != EOF && c != '\n' && c != '&' 
+                && c != '<' && c != '>' && c != '|' && !isblank(c))
             *p++;
         else
             break;
 
     }
-    ungetc(c, stdin);
+    // ungetc(c, stdin);
     *p = '\0';
-    if (i = 0)
+    if (i > 0)
         return TKN_NORMAL;
     else
         return TKN_NONE;
@@ -136,6 +141,9 @@ int main() {
     int pid;
     int stat;
     for(;;) {
+        for (i = 0; i < MAX_ARGC; i++) {
+            memset(av[i], '\0', sizeof av[i]);
+        }
         fprintf(stderr, "simplesh$ ");
         if (fgets(buf, sizeof buf, stdin) == NULL) {
             if (ferror(stdin)) {
@@ -151,17 +159,23 @@ int main() {
             fprintf(stderr, "\tac[%d]: %s\n", i, av[i]);
         fprintf(stderr, "\t** argv end **\n");
         
+        // ttype[0] = gettoken(av[0], TOKENLEN);
+        // fprintf(stderr, "\tType: %s, %s\n", pr_ttype(ttype[0]), av[0]);
+        
         for (i = 0; i < ac + 1; i++) {
-            while((ttype[i] = gettoken(av[i], TOKENLEN) != TKN_EOL && ttype[i] != TKN_EOF)) {
+            ttype[i] = gettoken(av[i], TOKENLEN);
+            /*
+            if (ttype[i] != TKN_EOL && ttype[i] != TKN_EOF) {
                 fprintf(stderr, "\tType: %s, %s\n", pr_ttype(ttype[i]), av[i]);
             }
             if (ttype[i] == TKN_EOL)
                 fprintf(stderr, "\tType");
+            */
         }
 
         
-        if (ac == 0)
-            continue;
+        // if (ac == 0)
+        //     continue;
         if (strcmp(av[0], ENDWORD) == 0)
             return 0;
         if ((pid = fork()) < 0) {
@@ -184,5 +198,6 @@ int main() {
             exit(1);
         }
         fprintf(stderr, "\t** parent: wait end: %d **\n", stat);
+
     }
 }

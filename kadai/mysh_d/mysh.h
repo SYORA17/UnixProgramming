@@ -19,6 +19,6 @@
 #define MAX_ARGV         256
 #define MAX_BUF          256
 
-#define ENDWORD          "\n"
+#define ENDWORD          "exit"
 
 #endif
