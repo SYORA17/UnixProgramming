@@ -12,7 +12,45 @@
 
 #define ENDWORD "\n"
 
-3
+int getargs(int *argc, char *argv[], char *buf) {
+    *argc = 0;
+    char c;
+    int prev_space_flg = 0;
+    int c_pos = 0;
+    int i = 0;
+    printf("%lu", strlen(buf));
+    // while((c = getchar()) != EOF) {
+    for (i = 0; i < strlen(buf); i++) {
+        c = buf[i];
+        if (c == '\n') {
+            if (prev_space_flg == 0) {
+                argv[*argc][c_pos] = '\0';
+            }
+            return 0;
+        } else if (c == ' ' || c == '\t') {
+            if (prev_space_flg == 0) {
+                prev_space_flg = 1;
+                argv[*argc][c_pos] = '\0';
+            }
+        } else {
+            if (prev_space_flg == 1) {
+                *argc += 1;
+                c_pos = 0;
+            }
+            if (*argc >= MAX_ARGC) {
+                fprintf(stderr, "command should be under %d.\n", MAX_ARGC);
+                return -1;
+            }
+            prev_space_flg = 0;
+            if (c_pos > MAX_ARGV - 2) {
+                break;
+            } else {
+                argv[*argc][c_pos++] = c;
+            }
+        }
+    }
+    return -1;
+}
 
 int main() {
     int i;
@@ -33,12 +71,15 @@ int main() {
             }
             exit(0);
         }
+        printf("here 74");
+
         buf[strlen(buf) - 1] = '\0';
         memset(av, 0, sizeof av);
+        printf("here");
         getargs(&ac, av, buf);
 
         fprintf(stderr, "\t** argv start ** \n");
-        for (i = 0; i < ac, i++)
+        for (i = 0; i < ac; i++)
             fprintf(stderr, "\tac[%d]: %s\n", i, av[i]);
         fprintf(stderr, "\t** argv end **\n");
 
