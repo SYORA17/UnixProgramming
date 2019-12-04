@@ -19,6 +19,7 @@
 #define MAX_ARGV         256
 #define MAX_BUF          256
 
+#define CDWORD           "cd"
 #define ENDWORD          "exit"
 
 #endif
