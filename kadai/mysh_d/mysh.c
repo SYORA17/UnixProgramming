@@ -186,7 +186,10 @@ int main() {
             // child process
             fprintf(stderr, "\t** child: execute %s **\n", av[0]);
 
-            if (execvp(av[0], av) < 0) {
+            char *bin_path = "/bin/";
+            strcat(bin_path, av[0]);
+
+            if (execvp(bin_path, av) < 0) {
                 perror("execvp");
                 exit(1);
             }
