@@ -7,12 +7,14 @@
 #include <sys/wait.h>
 #include "mysh.h"
 
+extern char **environ;
 
 struct tkntype {
     int type;
     char *name;
 } tkn[] = {
     TKN_NORMAL,         "NORMAL",
+    TKN_OPTION,         "OPTION",
     TKN_REDIR_IN,       "REDIR_IN",
     TKN_REDIR_OUT,      "REDIR_OUT",
     TKN_REDIR_APPEND,   "REDIR_APPEND",
@@ -52,6 +54,8 @@ int gettoken(char *token, int len)
             return TKN_EOF;
         case '\n':
             return TKN_EOL;
+        case '-':
+            return TKN_OPTION;
         case '&':
             return TKN_BG;
         case '|':
@@ -129,14 +133,26 @@ int getargs(int *argc, char *argv[], char *buf) {
 }
 
 int main() {
-    int i;
+    int i, j;
     char buf[256];
     int ac;
     int ttype[MAX_ARGC];
     char *av[MAX_ARGC];
+    /*
+    char *coms[MAX_ARGC][MAX_ARGC];
+    for (i = 0; i < MAX_ARGC; i++) {
+        coms[i] = (char *)malloc(sizeof(char *) * MAX_ARGC);
+    }
+    */
     for (i = 0; i < MAX_ARGC; i++) {
         av[i] = malloc(sizeof(char) * MAX_ARGV);
         memset(av[i], '\0', sizeof av[i]);
+        /*
+        for (j = 0; j < MAX_ARGV; j++) {
+            coms[i][j] = malloc(sizeof(char) * MAX_ARGV);
+            memset(coms[i][j], '\0', sizeof coms[i][j]);
+        }
+        */
     }
     int pid;
     int stat;
@@ -160,24 +176,65 @@ int main() {
         fprintf(stderr, "\t** argv end **\n");
         
         // ttype[0] = gettoken(av[0], TOKENLEN);
-        // fprintf(stderr, "\tType: %s, %s\n", pr_ttype(ttype[0]), av[0]);
-        
+        // fprintf(stderr, "\tType: %s, %s\n", pr_ttype(ttype[0]), av[0]); 
+
+        int pre_type = TKN_NONE;
+        int bg_flg = 0;
+        int pipe_num = 0;
+        int red_com_flg[ac + 1];
+        int com_err_flg = 0;
+
         for (i = 0; i < ac + 1; i++) {
             ttype[i] = gettoken(av[i], TOKENLEN);
-            /*
+            /* 
+            // use pr_ttype
             if (ttype[i] != TKN_EOL && ttype[i] != TKN_EOF) {
                 fprintf(stderr, "\tType: %s, %s\n", pr_ttype(ttype[i]), av[i]);
             }
             if (ttype[i] == TKN_EOL)
                 fprintf(stderr, "\tType");
             */
+            
+            if (i == 0) {
+                if (ttype[i] != TKN_NORMAL && ttype[i] != TKN_EOL && ttype[i] != TKN_EOF) {
+                    fprintf(stderr, "command error\n");
+                    com_err_flg = 1;
+                    break;
+                }
+            } else if (i == ac) {
+                if (ttype[i] == TKN_BG) {
+                    bg_flg = 1;
+                }
+            } else {
+                if (pre_type == TKN_NORMAL || pre_type == TKN_OPTION) {
+                    if (ttype[i] == TKN_PIPE) {
+                         pipe_num += 1;
+                    } else if (ttype[i] == TKN_REDIR_IN || ttype[i] == TKN_REDIR_OUT || ttype[i] || TKN_REDIR_APPEND) {
+                        red_com_flg[i] = 1;
+                    }
+                } else if (pre_type == TKN_REDIR_IN || pre_type == TKN_REDIR_OUT || pre_type == TKN_REDIR_APPEND || pre_type == TKN_PIPE) {
+                    if (ttype[i] != TKN_NORMAL) {
+                        fprintf(stderr, "command error\n");
+                        com_err_flg = 1;
+                        break;
+                    }
+                }
+            }
+            pre_type = ttype[i];
         }
-
         
         // if (ac == 0)
         //     continue;
         if (strcmp(av[0], ENDWORD) == 0)
             return 0;
+        if (com_err_flg == 1)
+            continue;
+        if (strcmp(av[0], "cd") == 0) {
+            if (chdir(av[1]) != 0) {
+                fprintf(stderr, "no such directory.\n");
+            }
+            continue;
+        }
         if ((pid = fork()) < 0) {
             perror("fork");
             exit(1);
@@ -188,11 +245,20 @@ int main() {
 
             char *bin_path = "/bin/";
             strcat(bin_path, av[0]);
-
-            if (execvp(bin_path, av) < 0) {
+            av[0] = "pwd";
+            av[1] = NULL;
+                
+            
+            if (execve("/bin/pwd", av, environ) < 0) {
+                perror("execve");
+                exit(1);
+            }
+            /*
+            if (execvp("/bin/pwd", av) < 0) {
                 perror("execvp");
                 exit(1);
             }
+            */
         }
         // parent process
         fprintf(stderr, "\t** parent: waif for child(%d) **\n", pid);

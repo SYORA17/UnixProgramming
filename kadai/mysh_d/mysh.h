@@ -7,6 +7,7 @@
 
 #define TKN_NONE         0000000
 #define TKN_NORMAL       0000001
+#define TKN_OPTION       0000002
 #define TKN_REDIR_IN     0000010
 #define TKN_REDIR_OUT    0000020
 #define TKN_REDIR_APPEND 0000030
