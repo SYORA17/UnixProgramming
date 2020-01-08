@@ -1,11 +1,14 @@
+#include "mydhcp.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include "mydhcp.h"
+#include <arpa/inet.h>
 
 // ソケットの生成
 // int socket(int domain, int type, int protocol);
@@ -14,13 +17,29 @@ struct proctable
 {
     int status;
     int event;
-    // void (*func)(...);
+    void (*func)();
 } ptab[] = {
-    {stat1, event1, f_act1},
+    {INIT, R_DISCOVER_IP, send_offer_ok},
+    {INIT, R_DISCOVER_NO_IP, send_offer_ng},
+    {WAIT_REQ, R_REQUEST_ACK_OK, send_ack_ok},
+    {WAIT_REQ, R_REQUEST_ACK_NG, send_ack_ng},
+    {WAIT_REQ, R_TIMEOUT_1st, send_offer_ok},
+    {WAIT_REQ, R_TIMEOUT_2nd, terminate},
+    {IN_USE, R_EXT_OK, extent},
+    {IN_USE, R_EXT_NG, terminate},
+    {IN_USE, R_TIMEOUT, terminate},
+    {TERMINATE, NO_EVENT, terminated},
+    {0, 0, NULL},
 };
 
-void wait_event(struct sockaddr skt, )
+int status;
+
+int wait_event(struct sockaddr skt)
 {
+    // メッセージ受信のタイムアウトをチェック
+    // 使用期限タイムアウトをチェック
+    // メッセージ受信をまつ
+
     char rbuf[STR_MAX]; // 受信用バッファ
     if ((count = recvfrom(skt, rbuf, sizeof rbuf, 0,
                           (struct sockaddr *)&skt, &sktlen)) < 0)
@@ -55,7 +74,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    if ((file = fopen(argv[1], "r")) == NULL)
+    if ((fp = fopen(argv[1], "r")) == NULL)
     {
         perror("cannot open file");
         exit(1);
@@ -88,14 +107,17 @@ int main(int argc, char *argv[])
         line++;
     }
     line--;
+    return 0;
     // ソケットは一個作成
     // socket(int domain, int type, int protocol);
     int s, s2, count;
-    struct sockaddr_in myskt; // 自ソケット
-    struct sockaddr_in skt;   // 相手のソケット
-    in_port_t port;           // 相手のポート番号
-    struct in_addr ipaddr;    // 相手のIPアドレス
-    socklen_t sktlen;
+    struct sockaddr_in myskt;      // 自ソケット
+    struct sockaddr_in skt;        // 相手のソケット
+    in_port_t port = DEFAULT_PORT; // 相手のポート番号
+    struct in_addr ipaddr;         // 相手のIPアドレス
+    char sbuf[STR_MAX];
+
+    inet_aton("127.0.0.1", &ipaddr);
 
     if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
@@ -105,7 +127,7 @@ int main(int argc, char *argv[])
 
     memset(&myskt, 0, sizeof myskt);
     myskt.sin_family = AF_INET;
-    myskt.sin_port = htons(51230);
+    myskt.sin_port = htons(DEFAULT_PORT);
     myskt.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // dhcp serverのip addrをバインド
@@ -115,12 +137,10 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    sktlen = sizeof skt;
-
     skt.sin_family = AF_INET;
     skt.sin_port = htons(port);
     skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
-    if ((count = sendto(s, sbuf, datalen, 0,
+    if ((count = sendto(s, sbuf, sizeof sbuf, 0,
                         (struct sockaddr *)&skt, sizeof skt)) < 0)
     {
         perror("sendto");
@@ -132,7 +152,7 @@ int main(int argc, char *argv[])
 
     for (;;)
     {
-        event = wait_event(/*...*/);
+        event = wait_event();
         for (pt = ptab; pt->status; pt++)
         {
             if (pt->status == status && pt->event == event)
@@ -143,15 +163,53 @@ int main(int argc, char *argv[])
         }
         if (pt->status == 0)
         {
-            // いらないはず...
             // エラー処理;
         }
     }
 }
 
-void f_act1()
+void send_offer_ok()
 {
+    // create client, alloc IP, send offer ok
+    if ((count = sendto(s, sbuf, sizeof sbuf, 0,
+                        (struct sockaddr *)&skt, sizeof skt)) < 0)
+    {
+        perror("sendto");
+        exit(1);
+    }
+    status = WAIT_REQ;
 }
-void f_act2()
+
+void send_offer_ng()
 {
+    // send offer ng,
+    status = TERMINATE;
+}
+
+void send_ack_ok()
+{
+    // send ack ok
+    status = IN_USE;
+}
+
+void send_ack_ng()
+{
+    // send ack ng
+    status = TERMINATE;
+}
+
+void resend_offer()
+{
+    // send offer ok
+}
+
+void extent()
+{
+    // reset ttl, send ack[ok]
+}
+
+void terminate()
+{
+    // recall IP, del client
+    status = TERMINATE;
 }
