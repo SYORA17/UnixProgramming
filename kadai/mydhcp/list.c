@@ -8,10 +8,10 @@
 
 void insert_ip_addr_top(struct ip_addr *h, struct ip_addr *p)
 {
-    p->bp = h->bp;
-    p->fp = h;
-    h->bp->fp = p;
-    h->bp = p;
+    p->bp = h;
+    p->fp = h->fp;
+    h->fp->bp = p;
+    h->fp = p;
 }
 
 void insert_ip_addr_tail(struct ip_addr *h, struct ip_addr *p)

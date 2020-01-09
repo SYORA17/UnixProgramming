@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 // ソケットの生成
 // int socket(int domain, int type, int protocol);
@@ -222,7 +223,7 @@ int main(int argc, char *argv[])
     clock.it_value = clock_t;
     inet_aton("127.0.0.1", &ipaddr);
 
-    sigaction(SIGALRM, alrm_func);
+    sigaction(SIGALRM, alrm_func, NULL);
 
     // 1秒おきにSIGALRMが起きる.
     setitimer(ITIMER_REAL, &clock, NULL);
