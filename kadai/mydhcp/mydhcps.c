@@ -32,11 +32,16 @@ struct proctable
     {0, 0, NULL},
 };
 
-int status;
+int status, alrmflag = 0;
 struct ip_addr *ip_addr_h;
-struct client *client_list_h;
+struct client *client_list;
 
-int wait_event(int s, struct sockaddr_in skt)
+void alrm_func()
+{
+    alrmflag++;
+}
+
+int wait_event(int s, struct sockaddr_in *skt)
 {
     // メッセージ受信のタイムアウトをチェック
     // 使用期限タイムアウトをチェック
@@ -46,17 +51,34 @@ int wait_event(int s, struct sockaddr_in skt)
 
     char rbuf[STR_MAX]; // 受信用バッファ
     int count;
+    struct client *c;
 
-    switch (status)
+    if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                          (struct sockaddr *)skt, (socklen_t *)sizeof(*skt))) < 0)
     {
-    case 'INIT':
-        // wait discover
-        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
-        {
+        if (alrmflag > 0) {
+            return R_SINGAL;
+        } else {
             perror("recvfrom");
             exit(1);
         }
+    }
+
+    c = search_client(client_list, skt);
+    if (c == NULL)
+    {
+        c = malloc(sizeof(struct client));
+        c->status = INIT;
+        c->skt = *skt;
+        c->id = skt->sin_addr;
+        insert_client_top(c);
+    }
+
+    // パケット受信
+    switch (c->status)
+    {
+    case INIT:
+        // wait discover
         if (rbuf[0] == '0')
         {
             //search ip.
@@ -70,14 +92,8 @@ int wait_event(int s, struct sockaddr_in skt)
             }
         }
         break;
-    case 'WAIT_REQ':
+    case WAIT_REQ:
         // wait request
-        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
-        {
-            perror("recvfrom");
-            exit(1);
-        }
         if (rbuf[0] == '0')
         {
             // if ok
@@ -88,13 +104,7 @@ int wait_event(int s, struct sockaddr_in skt)
             return R_REQUEST_ACK_NG;
         }
 
-    case 'IN_USE':
-        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
-        {
-            perror("recvfrom");
-            exit(1);
-        }
+    case IN_USE:
         if (rbuf[0] == '0')
         {
             return R_EXT_OK;
@@ -104,7 +114,7 @@ int wait_event(int s, struct sockaddr_in skt)
             return R_EXT_NG;
         }
         break;
-    case 'TERMINATE':
+    case TERMINATE:
         return NO_EVENT;
         break;
     default:
@@ -134,9 +144,9 @@ int main(int argc, char *argv[])
     ip_addr_h->fp = ip_addr_h;
     ip_addr_h->bp = ip_addr_h;
 
-    client_list_h = malloc(sizeof (struct client));
-    client_list_h->fp = client_list;
-    client_list_h->bp = client_list;
+    client_list = malloc(sizeof(struct client));
+    client_list->fp = client_list;
+    client_list->bp = client_list;
 
     if (argc != 2)
     {
@@ -199,9 +209,17 @@ int main(int argc, char *argv[])
     struct in_addr ipaddr;         // 相手のIPアドレス
     char sbuf[STR_MAX];
     fd_set rdfds;
+    const struct itimerval clock;
+    clock.it_interval = 1;
+    clock.it_value = 1;
     inet_aton("127.0.0.1", &ipaddr);
 
-    if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    sigaction(SIGALRM, alrm_func);
+
+    // 1秒おきにSIGALRMが起きる.
+    setitimer(ITIMER_REAL, clock, NULL);
+
+        if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
         perror("socket");
         exit(1);
@@ -220,9 +238,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    FD_ZERO(&rdfds);
-    FD_SET(0, &rdfds);
-    FD_SET(s, &rdfds);
+    // FD_ZERO(&rdfds);
+    // FD_SET(0, &rdfds);
+    // FD_SET(s, &rdfds);
+
+    /*
 
     if (select(s + 1, &rdfds, NULL, NULL, NULL) < 0)
     {
@@ -240,28 +260,34 @@ int main(int argc, char *argv[])
     {
         // パケット受信
     }
+    */
 
-    skt.sin_family = AF_INET;
-    skt.sin_port = htons(port);
-    skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
-    if ((count = sendto(s, sbuf, sizeof sbuf, 0,
-                        (struct sockaddr *)&skt, sizeof skt)) < 0)
-    {
-        perror("sendto");
-        exit(1);
-    }
+    // skt.sin_family = AF_INET;
+    // skt.sin_port = htons(port);
+    // skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
+    // if ((count = sendto(s, sbuf, sizeof sbuf, 0,
+    //                     (struct sockaddr *)&skt, sizeof skt)) < 0)
+    // {
+    //     perror("sendto");
+    //     exit(1);
+    // }
 
     struct proctable *pt;
     int event;
 
     for (;;)
     {
-        event = wait_event(s, skt);
+        event = wait_event(s, &skt);
+        if (alrmflag){
+            dec_ttl();
+            check_ttl(s);
+            alrmflag = 0;
+        }
         for (pt = ptab; pt->status; pt++)
         {
             if (pt->status == status && pt->event == event)
             {
-                (*pt->func)(s, skt);
+                (*pt->func)(s, &skt);
                 break;
             }
         }
@@ -274,7 +300,7 @@ int main(int argc, char *argv[])
     }
 }
 
-void send_offer_ok(int s, struct sockaddr_in skt)
+void send_offer_ok(int s, struct sockaddr_in *skt)
 {
     // create client, alloc IP, send offer ok
     int count;
@@ -288,7 +314,7 @@ void send_offer_ok(int s, struct sockaddr_in skt)
     status = WAIT_REQ;
 }
 
-void send_offer_ng(int s, struct sockaddr_in skt)
+void send_offer_ng(int s, struct sockaddr_in *skt)
 {
     // send offer ng,
     status = TERMINATE;

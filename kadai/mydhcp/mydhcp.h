@@ -31,6 +31,7 @@
 #define R_EXT_OK 30
 #define R_EXT_NG 31
 #define R_TIMEOUT 31
+#define R_SIGNAL 40
 
 // server function
 void send_offer_ok(int s, struct sockaddr_in skt);
@@ -81,6 +82,7 @@ struct client
     struct in_addr addr;
     struct in_addr netmask;
     uint16_t ttl;
+    struct sockaddr_in skt;
     //struct time val // 再送のための送信時刻
 };
 
@@ -115,3 +117,7 @@ int search_ip_addr(struct ip_addr *h);
 void print_ip_addr(struct ip_addr *h);
 void insert_client_top(struct client *h, struct client *p);
 void remove_client(struct client *p);
+struct client *search_client(struct client *h, struct sockaddr_in *skt);
+void alrm_func();
+void dec_ttl();
+void check_ttl();

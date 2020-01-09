@@ -65,3 +65,43 @@ void remove_client(struct client *p)
     p->fp->bp = p->bp;
     free(p);
 }
+
+struct client *search_client(struct client *h, struct sockaddr_in *skt)
+{
+    struct client *s;
+    for (s = h; s->fp != h; s = s->fp)
+    {
+        if (s->id.s_addr == skt->sin_addr.s_addr)
+        {
+            return s;
+        }
+    }
+    return NULL;
+}
+
+void dec_ttl()
+{
+    struct client *c;
+    for (c = client_list->fp; c->fp != client_list; c = c->fp) {
+        c->ttl--;
+    }
+}
+
+void check_ttl(int s, )
+{
+    struct client *c;
+    char sbuf[STR_MAX] = "0";
+    for (c = client_list->fp; c->fp != client_list; c = c->fp) {
+        if (c->ttl == 0) {
+            printf("timeout\n");
+            if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
+                        (struct sockaddr *)&c->skt, sizeof(c->skt))) < 0)
+            {
+                perror("sendto");
+                exit(1);
+            }
+            remove_client(c);
+            close(c);
+        }
+    }
+}
