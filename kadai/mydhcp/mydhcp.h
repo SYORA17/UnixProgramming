@@ -132,3 +132,5 @@ struct client *search_client(struct client *h, struct sockaddr_in *skt);
 void alrm_func();
 void dec_ttl();
 void check_ttl();
+
+void sighup_action();

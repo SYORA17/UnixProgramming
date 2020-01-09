@@ -35,10 +35,18 @@ struct proctable
 // global 変数
 int status, event;
 int alrmflag = 0;
+int ttl_counter;
+struct itimerval clock;
 
 void alrm_func()
 {
     alrmflag++;
+}
+
+void sighup_action()
+{
+    printf("catch sighup\n");
+    exit(0);
 }
 
 int wait_event(int s, struct sockaddr_in skt)
@@ -49,15 +57,37 @@ int wait_event(int s, struct sockaddr_in skt)
     int count;
     char rbuf[STR_MAX];
 
+    struct itimeval for_timer;
+    for_timer.tv_sec = 10;
+    for_timer.tv_usec = 0;
+
+    fd_set rdfds;
+
+    FD_ZERO(&rdfds);
+    FD_SET(s, &rdfds);
+
+    if (select(s + 1, &rdfds, NULL, NULL, &for_timer) < 0)
+    {
+        perror("select");
+        exit(1);
+    }
+    if (FD_ISSET(s, &rdfds))
+    {
+        // パケット受信
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
+            {
+                perror("recvfrom");
+                exit(1);
+            }
+        }
+    }
+
+
+
     switch (status)
     {
     case WAIT_OFF:
-        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
-        {
-            perror("recvfrom");
-            exit(1);
-        }
         if (rbuf[0] == '0')
         {
             // Code : 0
@@ -122,7 +152,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in skt; //相手のソケット
     socklen_t sktlen;
     sktlen = sizeof(skt);
-    char sbuf[512];                //送信用バッファ
+    char sbuf[STR_MAX];                //送信用バッファ
     in_port_t port = DEFAULT_PORT; // 相手のport
     struct in_addr ipaddr;         //相手のIPaddress
 
@@ -136,12 +166,18 @@ int main(int argc, char *argv[])
     // inet_aton("127.0.0.1", &ipaddr);
     inet_aton(ip, &ipaddr);
     skt.sin_family = AF_INET;
-    skt.sin_port = htons(port);
-    skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
-    skt.sin_addr.s_addr = htonl(INADDR_ANY);
+    clock.it_interval = 0;
+    clock.it_value = 10;
+
+
+    // skt.sin_port = htons(port);
+    // skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
+    // skt.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // timer
-    // sigaction(SIGALRM, alrm_func);
+    setitimer(ITIMER_REAL, clock, NULL);
+    sigaction(SIGALRM, alrm_func);
+    sigaction(SIGHUP, sighup_action);
 
     if ((count = sendto(s, sbuf, datalen, 0,
                         (struct sockaddr *)&skt, sizeof(skt))) < 0)
@@ -149,16 +185,17 @@ int main(int argc, char *argv[])
         perror("sendto");
         exit(1);
     }
+
     struct proctable *pt;
 
     for (;;)
     {
-
-        pause();
+        // pause();
         if (alrmflag > 0)
         {
             alrmflag = 0;
-            /// SIGALRM 受信時の処理
+            // SIGALRM 受信時の処理
+
         }
         event = wait_event(s, skt);
         for (pt = ptab; pt->status; pt++)

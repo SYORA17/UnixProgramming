@@ -27,7 +27,7 @@ void remove_ip_addr(struct ip_addr *p)
 {
     p->bp->fp = p->fp;
     p->fp->bp = p->bp;
-    free(p);
+    // free(p);
 }
 
 int search_ip_addr(struct ip_addr *h)
@@ -83,7 +83,9 @@ void dec_ttl()
 {
     struct client *c;
     for (c = client_list->fp; c->fp != client_list; c = c->fp) {
-        c->ttlcounter--;
+        if (c->status == IN_USE) {
+            c->ttlcounter--;
+        }
     }
 }
 
@@ -92,7 +94,7 @@ void check_ttl(int s, )
     struct client *c;
     char sbuf[STR_MAX] = "0";
     for (c = client_list->fp; c->fp != client_list; c = c->fp) {
-        if (c->ttl == 0) {
+        if (c->ttl == 0 && c->status == IN_USE) {
             printf("%s, timeout\n", inet_ntoa(c->addr));
             if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&c->skt, sizeof(c->skt))) < 0)
