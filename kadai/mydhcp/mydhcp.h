@@ -33,42 +33,42 @@
 #define R_TIMEOUT 31
 
 // server function
-void send_offer_ok();
-void send_offer_ng();
-void send_ack_ok();
-void send_ack_ng();
-void resend_offer();
-void extent();
-void terminate();
-void terminated();
+void send_offer_ok(int s, struct sockaddr_in skt);
+void send_offer_ng(int s, struct sockaddr_in skt);
+void send_ack_ok(int s, struct sockaddr_in skt);
+void send_ack_ng(int s, struct sockaddr_in skt);
+void resend_offer(int s, struct sockaddr_in skt);
+void extent(int s, struct sockaddr_in skt);
+void terminate(int s, struct sockaddr_in skt);
+void terminated(int s, struct sockaddr_in skt);
 
 // client fsm
 // client status
 // #define INIT 1
-#define WAIT_OFF 2
-#define WAIT_ACK 3
+#define WAIT_OFF 112
+#define WAIT_ACK 113
 // #define IN_USE 4
-#define WAIT_EXT_ACK 5
-#define EXIT 9
+#define WAIT_EXT_ACK 115
+#define EXIT 999
 
 // client event
 // #define NO_EVENT 0
-#define R_OFF_OK 10
-#define R_OFF_NG 11
+#define R_OFF_OK 1000
+#define R_OFF_NG 1001
 // #define R_TIMEOUT_1st 22
 // #define R_TIMEOUT_2nd 23
-#define R_ACK_OK 20
-#define R_ACK_NG 21
-#define TTL_2_PASSED 24
-#define R_SIGHUP 30
+#define R_ACK_OK 2000
+#define R_ACK_NG 2001
+#define TTL_2_PASSED 2004
+#define R_SIGHUP 3000
 
 // client function
-void send_discover();
-void send_request();
-void send_ext();
-void in_use();
-void release();
-void exited();
+void send_discover(int s, struct sockaddr_in skt);
+void send_request(int s, struct sockaddr_in skt);
+void send_ext(int s, struct sockaddr_in skt);
+void in_use(int s, struct sockaddr_in skt);
+void release(int s, struct sockaddr_in skt);
+void exited(int s, struct sockaddr_in skt);
 
 struct client
 {
@@ -111,3 +111,4 @@ struct ip_addr
 void insert_ip_addr_top(struct ip_addr *h, struct ip_addr *p);
 void insert_ip_addr_tail(struct ip_addr *h, struct ip_addr *p);
 void remove_ip_addr(struct ip_addr *p);
+void print_ip_addr(struct ip_addr *h);

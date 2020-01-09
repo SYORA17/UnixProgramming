@@ -41,7 +41,7 @@ void alrm_func()
     alrmflag++;
 }
 
-int wait_event(struct sockaddr skt, )
+int wait_event(int s, struct sockaddr_in skt)
 {
     // アドレス取得前: メッセージ受信をまつ
     // アドレス取得後: SIGALRM or SIGHUP をまつ
@@ -52,8 +52,8 @@ int wait_event(struct sockaddr skt, )
     switch (status)
     {
     case WAIT_OFF:
-        if ((count = recvfrom(skt, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, &sktlen)) < 0)
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
         {
             perror("recvfrom");
             exit(1);
@@ -69,8 +69,8 @@ int wait_event(struct sockaddr skt, )
         }
         break;
     case WAIT_ACK:
-        if ((count = recvfrom(skt, rbuf, sizeof rbuf, 0,
-                              (struct sockaddr *)&skt, &sktlen)) < 0)
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
         {
             perror("recvfrom");
             exit(1);
@@ -89,13 +89,18 @@ int wait_event(struct sockaddr skt, )
         break;
 
     case WAIT_EXT_ACK:
+        break;
 
     case EXIT:
+        break;
+    default:
+        break;
     }
 
     // sendto() でサーバのソケットアドレスを指定して送信
     // recvfrom() でサーバからの応答を受診
     // これらを必要なだけ繰り返す.
+    return NO_EVENT;
 }
 
 int main(int argc, char *argv[])
@@ -115,9 +120,9 @@ int main(int argc, char *argv[])
 
     int s, count, datalen;
     struct sockaddr_in skt; //相手のソケット
-    char sbuf[512];         //送信用バッファ
     socklen_t sktlen;
     sktlen = sizeof(skt);
+    char sbuf[512];                //送信用バッファ
     in_port_t port = DEFAULT_PORT; // 相手のport
     struct in_addr ipaddr;         //相手のIPaddress
 
@@ -136,10 +141,10 @@ int main(int argc, char *argv[])
     skt.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // timer
-    sigaction(SIGALRM, alrm_func);
+    // sigaction(SIGALRM, alrm_func);
 
     if ((count = sendto(s, sbuf, datalen, 0,
-                        (struct sockaddr *)&skt, sktlen)) < 0)
+                        (struct sockaddr *)&skt, sizeof(skt))) < 0)
     {
         perror("sendto");
         exit(1);
@@ -155,12 +160,12 @@ int main(int argc, char *argv[])
             alrmflag = 0;
             /// SIGALRM 受信時の処理
         }
-        event = wait_event();
+        event = wait_event(s, skt);
         for (pt = ptab; pt->status; pt++)
         {
             if (pt->status == status && pt->event == event)
             {
-                (*pt->func)();
+                (*pt->func)(s, skt);
                 break;
             }
         }
@@ -179,36 +184,64 @@ int main(int argc, char *argv[])
     exit(0); // プロセスを終了する.
 }
 
-void send_discover()
+void send_discover(int s, struct sockaddr_in skt)
 {
+    int count;
+    char sbuf[STR_MAX];
     // send discover
-    if ((count = sendto(s, sbuf, datalen, 0,
-                        (struct sockaddr *)&skt, sktlen)) < 0)
+    if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
+                        (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
     {
         perror("sendto");
         exit(1);
     }
+    printf("client : %d, STATUS: ", s);
     status = WAIT_OFF;
 }
 
-void send_request()
+void send_request(int s, struct sockaddr_in skt)
 {
     // send request
+    int count;
+    char sbuf[STR_MAX];
+    if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
+                        (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
+    {
+        perror("sendto");
+        exit(1);
+    }
     status = WAIT_ACK;
 }
 
-void send_ext()
+void send_ext(int s, struct sockaddr_in skt)
 {
     // send extent
+    int count;
+    char sbuf[STR_MAX];
+    if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
+                        (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
+    {
+        perror("sendto");
+        exit(1);
+    }
     status = WAIT_EXT_ACK;
 }
 
-void in_use()
+void in_use(int s, struct sockaddr_in skt)
 {
     // pass
+    return;
 }
-void release()
+void release(int s, struct sockaddr_in skt)
 {
     // send RELEASE
+    int count;
+    char sbuf[STR_MAX];
+    if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
+                        (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
+    {
+        perror("sendto");
+        exit(1);
+    }
     status = EXIT;
 }

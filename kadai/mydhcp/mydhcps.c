@@ -34,21 +34,22 @@ struct proctable
 
 int status;
 
-int wait_event(struct sockaddr skt)
+int wait_event(int s, struct sockaddr_in skt)
 {
     // メッセージ受信のタイムアウトをチェック
     // 使用期限タイムアウトをチェック
     // メッセージ受信をまつ
 
     char rbuf[STR_MAX]; // 受信用バッファ
-    if ((count = recvfrom(skt, rbuf, sizeof rbuf, 0,
-                          (struct sockaddr *)&skt, &sktlen)) < 0)
+    int count;
+    if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                          (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
     {
         perror("recvfrom");
         exit(1);
     }
-    in_port_t port = skt->sin_port;
-    char ip_str[STR_MAX] = skt->sin_addr;
+    // in_port_t port = skt.sin_port;
+    // char ip_str[STR_MAX] = skt.sin_addr;
     // ipアドレスと, skt.sin_port を見る.
 }
 
@@ -94,8 +95,16 @@ int main(int argc, char *argv[])
             {
                 struct ip_addr *p;
                 p = malloc(sizeof(struct ip_addr));
-                p->ip = tmp_ip;
-                p->netmask = tmp_netmask;
+                if (inet_aton(tmp_ip, &p->ip) < 0)
+                {
+                    perror("config file");
+                    exit(1);
+                }
+                if (inet_aton(tmp_netmask, &p->netmask) < 0)
+                {
+                    perror("config file");
+                    exit(1);
+                }
                 insert_ip_addr_top(ip_addr_h, p);
             }
             else
@@ -106,6 +115,7 @@ int main(int argc, char *argv[])
         }
         line++;
     }
+    print_ip_addr(ip_addr_h);
     line--;
     return 0;
     // ソケットは一個作成
@@ -116,6 +126,7 @@ int main(int argc, char *argv[])
     in_port_t port = DEFAULT_PORT; // 相手のポート番号
     struct in_addr ipaddr;         // 相手のIPアドレス
     char sbuf[STR_MAX];
+    fd_set rdfds;
 
     inet_aton("127.0.0.1", &ipaddr);
 
@@ -125,6 +136,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // 自ソケットに設定
     memset(&myskt, 0, sizeof myskt);
     myskt.sin_family = AF_INET;
     myskt.sin_port = htons(DEFAULT_PORT);
@@ -135,6 +147,26 @@ int main(int argc, char *argv[])
     {
         perror("bind");
         exit(1);
+    }
+
+    FD_ZERO(&rdfds);
+    FD_SET(0, &rdfds);
+    FD_SET(s, &rdfds);
+
+    if (select(s + 1, &rdfds, NULL, NULL, NULL) < 0)
+    {
+        perror("select");
+        exit(1);
+    }
+
+    if (FD_ISSET(0, &rdfds))
+    {
+        // 標準入力から入力
+    }
+
+    if (FD_ISSET(s, &rdfds))
+    {
+        // パケット受信
     }
 
     skt.sin_family = AF_INET;
@@ -152,7 +184,7 @@ int main(int argc, char *argv[])
 
     for (;;)
     {
-        event = wait_event();
+        event = wait_event(s, skt);
         for (pt = ptab; pt->status; pt++)
         {
             if (pt->status == status && pt->event == event)
@@ -168,9 +200,11 @@ int main(int argc, char *argv[])
     }
 }
 
-void send_offer_ok()
+void send_offer_ok(int s, struct sockaddr_in skt)
 {
     // create client, alloc IP, send offer ok
+    int count;
+    char sbuf[STR_MAX];
     if ((count = sendto(s, sbuf, sizeof sbuf, 0,
                         (struct sockaddr *)&skt, sizeof skt)) < 0)
     {
@@ -180,36 +214,41 @@ void send_offer_ok()
     status = WAIT_REQ;
 }
 
-void send_offer_ng()
+void send_offer_ng(int s, struct sockaddr_in skt)
 {
     // send offer ng,
     status = TERMINATE;
 }
 
-void send_ack_ok()
+void send_ack_ok(int s, struct sockaddr_in skt)
 {
     // send ack ok
     status = IN_USE;
 }
 
-void send_ack_ng()
+void send_ack_ng(int s, struct sockaddr_in skt)
 {
     // send ack ng
     status = TERMINATE;
 }
 
-void resend_offer()
+void resend_offer(int s, struct sockaddr_in skt)
 {
     // send offer ok
 }
 
-void extent()
+void extent(int s, struct sockaddr_in skt)
 {
     // reset ttl, send ack[ok]
 }
 
-void terminate()
+void terminate(int s, struct sockaddr_in skt)
 {
     // recall IP, del client
     status = TERMINATE;
+}
+
+void terminated(int s, struct sockaddr_in skt)
+{
+    // pass
 }

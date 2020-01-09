@@ -30,6 +30,14 @@ void remove_ip_addr(struct ip_addr *p)
     free(p);
 }
 
+void print_ip_addr(struct ip_addr *h)
+{
+    for (; h->fp != h; h = h->fp)
+    {
+        printf("%s %s", inet_ntoa(h->ip), inet_ntoa(h->netmask));
+    }
+}
+
 void insert_client_top(struct client *h, struct client *p)
 {
     p->bp = h->bp;
