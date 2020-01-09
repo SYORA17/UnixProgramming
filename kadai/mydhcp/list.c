@@ -89,9 +89,10 @@ void dec_ttl()
     }
 }
 
-void check_ttl(int s, )
+void check_ttl(int s)
 {
     struct client *c;
+    int count;
     char sbuf[STR_MAX] = "0";
     for (c = client_list->fp; c->fp != client_list; c = c->fp) {
         if (c->ttl == 0 && c->status == IN_USE) {
@@ -102,8 +103,9 @@ void check_ttl(int s, )
                 perror("sendto");
                 exit(1);
             }
-            struct ip_addr p;
-            p->addr = c->addr;
+            struct ip_addr *p;
+            p = malloc(sizeof(struct ip_addr));
+            p->ip = c->addr;
             p->netmask = c->netmask;
             insert_ip_addr_tail(ip_addr_h, p);
             remove_client(c);

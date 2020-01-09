@@ -59,23 +59,23 @@ int wait_event(int s, struct sockaddr_in *skt)
                           (struct sockaddr *)skt, (socklen_t *)sizeof(*skt))) < 0)
     {
         if (alrmflag > 0) {
-            return R_SINGAL;
+            return R_SIGNAL;
         } else {
             perror("recvfrom");
             exit(1);
         }
     }
-    r_dh = (sturct dhcph *)rbuf;
+    r_dh = (struct dhcph *)rbuf;
 
     c = search_client(client_list, skt);
     if (c == NULL)
     {
         c = malloc(sizeof(struct client));
-        memest(c, 0, sizeof(struct client));
+        memset(c, 0, sizeof(struct client));
         c->status = INIT;
         c->skt = *skt;
         c->id = skt->sin_addr;
-        insert_client_top(c);
+        insert_client_top(client_list, c);
     }
 
     // パケット受信
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     ip_addr_h->fp = ip_addr_h;
     ip_addr_h->bp = ip_addr_h;
 
-    client_list = malloc(sizeof(struct client));
+    client_list = (struct client *)malloc(sizeof(struct client));
     client_list->fp = client_list;
     client_list->bp = client_list;
 
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
             if (sscanf(buf, "%s %s\n", tmp_ip, tmp_netmask) != EOF)
             {
                 struct ip_addr *p;
-                // printf("%s %s\n", tmp_ip, tmp_netmask);
+                printf("%s %s\n", tmp_ip, tmp_netmask);
                 p = (struct ip_addr *)malloc(sizeof(struct ip_addr));
                 if (inet_aton(tmp_ip, &p->ip) < 0)
                 {
@@ -214,15 +214,18 @@ int main(int argc, char *argv[])
     in_port_t port = DEFAULT_PORT; // 相手のポート番号
     struct in_addr ipaddr;         // 相手のIPアドレス
     char sbuf[STR_MAX];
-    const struct itimerval clock;
-    clock.it_interval = 1;
-    clock.it_value = 1;
+    struct itimerval clock;
+    struct timeval clock_t;
+    clock_t.tv_sec = 1;
+    clock_t.tv_usec = 0;
+    clock.it_interval = clock_t;
+    clock.it_value = clock_t;
     inet_aton("127.0.0.1", &ipaddr);
 
     sigaction(SIGALRM, alrm_func);
 
     // 1秒おきにSIGALRMが起きる.
-    setitimer(ITIMER_REAL, clock, NULL);
+    setitimer(ITIMER_REAL, &clock, NULL);
 
         if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
@@ -286,13 +289,13 @@ void send_offer_ok(int s, struct sockaddr_in *skt)
     // create client, alloc IP, send offer ok
     int count;
     char sbuf[STR_MAX];
-    sturct ip_addr *addr = ip_addr_h->fp;
+    struct ip_addr *addr = ip_addr_h->fp;
     struct dhcph *s_dh = (struct dhcph *)sbuf;
-    s_dh.type = 2;
-    s_dh.code = 0;
-    s_dh.ttl = ttl;
-    s_dh.address = addr->ip;
-    s_dh.netmask = addr->netmask;
+    s_dh->type = 2;
+    s_dh->code = 0;
+    s_dh->ttl = ttl;
+    s_dh->address = addr->ip.s_addr;
+    s_dh->netmask = addr->netmask.s_addr;
     remove_ip_addr(addr);
     if ((count = sendto(s, sbuf, sizeof sbuf, 0,
                         (struct sockaddr *)&skt, sizeof skt)) < 0)
@@ -314,35 +317,35 @@ void send_offer_ng(int s, struct sockaddr_in *skt)
     status = TERMINATE;
 }
 
-void send_ack_ok(int s, struct sockaddr_in skt)
+void send_ack_ok(int s, struct sockaddr_in *skt)
 {
     // send ack ok
     status = IN_USE;
 }
 
-void send_ack_ng(int s, struct sockaddr_in skt)
+void send_ack_ng(int s, struct sockaddr_in *skt)
 {
     // send ack ng
     status = TERMINATE;
 }
 
-void resend_offer(int s, struct sockaddr_in skt)
+void resend_offer(int s, struct sockaddr_in *skt)
 {
     // send offer ok
 }
 
-void extent(int s, struct sockaddr_in skt)
+void extent(int s, struct sockaddr_in *skt)
 {
     // reset ttl, send ack[ok]
 }
 
-void terminate(int s, struct sockaddr_in skt)
+void terminate(int s, struct sockaddr_in *skt)
 {
     // recall IP, del client
     status = TERMINATE;
 }
 
-void terminated(int s, struct sockaddr_in skt)
+void terminated(int s, struct sockaddr_in *skt)
 {
     // pass
 }

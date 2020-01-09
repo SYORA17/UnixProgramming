@@ -34,14 +34,14 @@
 #define R_SIGNAL 40
 
 // server function
-void send_offer_ok(int s, struct sockaddr_in skt);
-void send_offer_ng(int s, struct sockaddr_in skt);
-void send_ack_ok(int s, struct sockaddr_in skt);
-void send_ack_ng(int s, struct sockaddr_in skt);
-void resend_offer(int s, struct sockaddr_in skt);
-void extent(int s, struct sockaddr_in skt);
-void terminate(int s, struct sockaddr_in skt);
-void terminated(int s, struct sockaddr_in skt);
+void send_offer_ok(int s, struct sockaddr_in *skt);
+void send_offer_ng(int s, struct sockaddr_in *skt);
+void send_ack_ok(int s, struct sockaddr_in *skt);
+void send_ack_ng(int s, struct sockaddr_in *skt);
+void resend_offer(int s, struct sockaddr_in *skt);
+void extent(int s, struct sockaddr_in *skt);
+void terminate(int s, struct sockaddr_in *skt);
+void terminated(int s, struct sockaddr_in *skt);
 
 // client fsm
 // client status
@@ -62,6 +62,7 @@ void terminated(int s, struct sockaddr_in skt);
 #define R_ACK_NG 2001
 #define TTL_2_PASSED 2004
 #define R_SIGHUP 3000
+
 
 // client function
 void send_discover(int s, struct sockaddr_in skt);
@@ -86,8 +87,7 @@ struct client
     //struct time val // 再送のための送信時刻
 };
 
-struct client client_list;
-
+struct client *client_list;
 
 struct dhcph
 {
@@ -113,13 +113,13 @@ struct ip_addr
 
 struct ip_addr *ip_addr_h;
 
-struct ip_addr_client_wait_req
+struct ip_addr_wait_req
 {
     struct client c;
     int req_ttl;
 };
 
-struct ip_addr_wait_req ip_addr_wait_req_h;
+struct ip_addr_wait_req *ip_addr_wait_req_h;
 
 void insert_ip_addr_top(struct ip_addr *h, struct ip_addr *p);
 void insert_ip_addr_tail(struct ip_addr *h, struct ip_addr *p);
