@@ -30,6 +30,18 @@ void remove_ip_addr(struct ip_addr *p)
     free(p);
 }
 
+int search_ip_addr(struct ip_addr *h)
+{
+    if (h->fp != h)
+    {
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
 void print_ip_addr(struct ip_addr *h)
 {
     struct ip_addr *p;

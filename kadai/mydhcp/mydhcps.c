@@ -33,6 +33,7 @@ struct proctable
 };
 
 int status;
+struct ip_addr *ip_addr_h;
 
 int wait_event(int s, struct sockaddr_in skt)
 {
@@ -40,14 +41,75 @@ int wait_event(int s, struct sockaddr_in skt)
     // 使用期限タイムアウトをチェック
     // メッセージ受信をまつ
 
+    // タイムアウトチェック
+
     char rbuf[STR_MAX]; // 受信用バッファ
     int count;
-    if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
-                          (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
+
+    switch (status)
     {
-        perror("recvfrom");
-        exit(1);
+    case 'INIT':
+        // wait discover
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+        if (rbuf[0] == '0')
+        {
+            //search ip.
+            if (search_ip_addr(ip_addr_h) == 0)
+            {
+                return R_DISCOVER_IP;
+            }
+            else
+            {
+                return R_DISCOVER_NO_IP;
+            }
+        }
+        break;
+    case 'WAIT_REQ':
+        // wait request
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+        if (rbuf[0] == '0')
+        {
+            // if ok
+            return R_REQUEST_ACK_OK;
+        }
+        else
+        {
+            return R_REQUEST_ACK_NG;
+        }
+
+    case 'IN_USE':
+        if ((count = recvfrom(s, rbuf, sizeof rbuf, 0,
+                              (struct sockaddr *)&skt, (socklen_t *)sizeof(skt))) < 0)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+        if (rbuf[0] == '0')
+        {
+            return R_EXT_OK;
+        }
+        else
+        {
+            return R_EXT_NG;
+        }
+        break;
+    case 'TERMINATE':
+        return NO_EVENT;
+        break;
+    default:
+        break;
     }
+
     // in_port_t port = skt.sin_port;
     // char ip_str[STR_MAX] = skt.sin_addr;
     // ipアドレスと, skt.sin_port を見る.
@@ -67,10 +129,10 @@ int main(int argc, char *argv[])
     char tmp_netmask[STR_MAX];
     int i;
 
-    struct ip_addr *ip_addr_h = malloc(sizeof(struct ip_addr));
+    ip_addr_h = malloc(sizeof(struct ip_addr));
     ip_addr_h->fp = ip_addr_h;
     ip_addr_h->bp = ip_addr_h;
-    
+
     if (argc != 2)
     {
         perror("input error");
@@ -120,7 +182,7 @@ int main(int argc, char *argv[])
         }
         line++;
     }
-    printf("%d\n" ,ttl);
+    printf("%d\n", ttl);
     print_ip_addr(ip_addr_h);
     line--;
     // ソケットは一個作成
@@ -166,6 +228,7 @@ int main(int argc, char *argv[])
     if (FD_ISSET(0, &rdfds))
     {
         // 標準入力から入力
+        //　今回はない...？
     }
 
     if (FD_ISSET(s, &rdfds))
@@ -193,13 +256,15 @@ int main(int argc, char *argv[])
         {
             if (pt->status == status && pt->event == event)
             {
-                (*pt->func)(/*...*/);
+                (*pt->func)(s, skt);
                 break;
             }
         }
         if (pt->status == 0)
         {
             // エラー処理;
+            fprintf(stderr, "server main loop error\n");
+            exit(1);
         }
     }
 }
