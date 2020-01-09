@@ -112,3 +112,5 @@ void insert_ip_addr_top(struct ip_addr *h, struct ip_addr *p);
 void insert_ip_addr_tail(struct ip_addr *h, struct ip_addr *p);
 void remove_ip_addr(struct ip_addr *p);
 void print_ip_addr(struct ip_addr *h);
+void insert_client_top(struct client *h, struct client *p);
+void remove_client(struct client *p);

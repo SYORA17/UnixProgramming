@@ -32,9 +32,10 @@ void remove_ip_addr(struct ip_addr *p)
 
 void print_ip_addr(struct ip_addr *h)
 {
-    for (; h->fp != h; h = h->fp)
+    struct ip_addr *p;
+    for (p = h; p->fp != h; p = p->fp)
     {
-        printf("%s %s", inet_ntoa(h->ip), inet_ntoa(h->netmask));
+        printf("%s %s\n", inet_ntoa(p->ip), inet_ntoa(p->netmask));
     }
 }
 

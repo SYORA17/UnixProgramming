@@ -68,7 +68,9 @@ int main(int argc, char *argv[])
     int i;
 
     struct ip_addr *ip_addr_h = malloc(sizeof(struct ip_addr));
-
+    ip_addr_h->fp = ip_addr_h;
+    ip_addr_h->bp = ip_addr_h;
+    
     if (argc != 2)
     {
         perror("input error");
@@ -85,16 +87,19 @@ int main(int argc, char *argv[])
     int line = 0;
     while (fgets(buf, STR_MAX, fp) != NULL)
     {
+        memset(tmp_ip, 0, STR_MAX);
+        memset(tmp_netmask, 0, STR_MAX);
         if (line == 0)
         {
-            ttl = fscanf(buf, "%d", &ttl);
+            sscanf(buf, "%d", &ttl);
         }
         else
         {
-            if (fscanf(buf, "%s %s\n", tmp_ip, tmp_netmask) != EOF)
+            if (sscanf(buf, "%s %s\n", tmp_ip, tmp_netmask) != EOF)
             {
                 struct ip_addr *p;
-                p = malloc(sizeof(struct ip_addr));
+                // printf("%s %s\n", tmp_ip, tmp_netmask);
+                p = (struct ip_addr *)malloc(sizeof(struct ip_addr));
                 if (inet_aton(tmp_ip, &p->ip) < 0)
                 {
                     perror("config file");
@@ -115,9 +120,9 @@ int main(int argc, char *argv[])
         }
         line++;
     }
+    printf("%d\n" ,ttl);
     print_ip_addr(ip_addr_h);
     line--;
-    return 0;
     // ソケットは一個作成
     // socket(int domain, int type, int protocol);
     int s, s2, count;
@@ -127,7 +132,6 @@ int main(int argc, char *argv[])
     struct in_addr ipaddr;         // 相手のIPアドレス
     char sbuf[STR_MAX];
     fd_set rdfds;
-
     inet_aton("127.0.0.1", &ipaddr);
 
     if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
