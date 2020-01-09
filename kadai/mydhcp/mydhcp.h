@@ -88,6 +88,7 @@ struct client
 
 struct client client_list;
 
+
 struct dhcph
 {
     uint8_t type;
@@ -109,6 +110,16 @@ struct ip_addr
     struct in_addr ip;
     struct in_addr netmask;
 };
+
+struct ip_addr *ip_addr_h;
+
+struct ip_addr_client_wait_req
+{
+    struct client c;
+    int req_ttl;
+};
+
+struct ip_addr_wait_req ip_addr_wait_req_h;
 
 void insert_ip_addr_top(struct ip_addr *h, struct ip_addr *p);
 void insert_ip_addr_tail(struct ip_addr *h, struct ip_addr *p);

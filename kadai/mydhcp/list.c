@@ -83,7 +83,7 @@ void dec_ttl()
 {
     struct client *c;
     for (c = client_list->fp; c->fp != client_list; c = c->fp) {
-        c->ttl--;
+        c->ttlcounter--;
     }
 }
 
@@ -93,13 +93,17 @@ void check_ttl(int s, )
     char sbuf[STR_MAX] = "0";
     for (c = client_list->fp; c->fp != client_list; c = c->fp) {
         if (c->ttl == 0) {
-            printf("timeout\n");
+            printf("%s, timeout\n", inet_ntoa(c->addr));
             if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&c->skt, sizeof(c->skt))) < 0)
             {
                 perror("sendto");
                 exit(1);
             }
+            struct ip_addr p;
+            p->addr = c->addr;
+            p->netmask = c->netmask;
+            insert_ip_addr_tail(ip_addr_h, p);
             remove_client(c);
             close(c);
         }

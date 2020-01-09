@@ -33,8 +33,6 @@ struct proctable
 };
 
 int status, alrmflag = 0;
-struct ip_addr *ip_addr_h;
-struct client *client_list;
 
 void alrm_func()
 {
@@ -84,6 +82,9 @@ int wait_event(int s, struct sockaddr_in *skt)
             //search ip.
             if (search_ip_addr(ip_addr_h) == 0)
             {
+                // search
+                remove_ip_addr(ip_addr_h->fp);
+                // requestしているipaddressのセットを返す.
                 return R_DISCOVER_IP;
             }
             else
