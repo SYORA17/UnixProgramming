@@ -45,7 +45,7 @@ int search_ip_addr(struct ip_addr *h)
 void print_ip_addr(struct ip_addr *h)
 {
     struct ip_addr *p;
-    for (p = h; p->fp != h; p = p->fp)
+    for (p = h->fp; p != h; p = p->fp)
     {
         printf("%s %s\n", inet_ntoa(p->ip), inet_ntoa(p->netmask));
     }

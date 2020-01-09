@@ -182,6 +182,9 @@ int main(int argc, char *argv[])
             if (sscanf(buf, "%s %s\n", tmp_ip, tmp_netmask) != EOF)
             {
                 struct ip_addr *p;
+                char s_n[32], s_i[32];
+                strncpy(inet_ntoa(p->netmask):q, s_n, 32);
+                strncpy(inet_ntoa(p->ip), s_i, 32);
                 printf("%s %s\n", tmp_ip, tmp_netmask);
                 p = (struct ip_addr *)malloc(sizeof(struct ip_addr));
                 if (inet_aton(tmp_ip, &p->ip) < 0)
