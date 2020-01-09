@@ -34,6 +34,7 @@ struct proctable
 
 int status;
 struct ip_addr *ip_addr_h;
+struct client *client_list_h;
 
 int wait_event(int s, struct sockaddr_in skt)
 {
@@ -132,6 +133,10 @@ int main(int argc, char *argv[])
     ip_addr_h = malloc(sizeof(struct ip_addr));
     ip_addr_h->fp = ip_addr_h;
     ip_addr_h->bp = ip_addr_h;
+
+    client_list_h = malloc(sizeof (struct client));
+    client_list_h->fp = client_list;
+    client_list_h->bp = client_list;
 
     if (argc != 2)
     {

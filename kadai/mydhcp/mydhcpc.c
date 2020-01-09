@@ -189,6 +189,7 @@ void send_discover(int s, struct sockaddr_in skt)
     int count;
     char sbuf[STR_MAX];
     // send discover
+    sbuf = "0";
     if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
     {
@@ -204,6 +205,7 @@ void send_request(int s, struct sockaddr_in skt)
     // send request
     int count;
     char sbuf[STR_MAX];
+    sbuf = "2";
     if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
     {
@@ -218,6 +220,7 @@ void send_ext(int s, struct sockaddr_in skt)
     // send extent
     int count;
     char sbuf[STR_MAX];
+    sbuf = "3";
     if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
     {
@@ -237,6 +240,7 @@ void release(int s, struct sockaddr_in skt)
     // send RELEASE
     int count;
     char sbuf[STR_MAX];
+    sbuf = "release";
     if ((count = sendto(s, sbuf, sizeof(sbuf), 0,
                         (struct sockaddr *)&skt, *(socklen_t *)sizeof(skt))) < 0)
     {
