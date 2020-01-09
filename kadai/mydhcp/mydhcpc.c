@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
     }
 
     // 送り先の情報登録
-    inet_aton("127.0.0.1", &ipaddr);
-    // inet_aton(ip, &ipaddr);
+    // inet_aton("127.0.0.1", &ipaddr);
+    inet_aton(ip, &ipaddr);
     skt.sin_family = AF_INET;
     skt.sin_port = htons(port);
     skt.sin_addr.s_addr = htonl(ipaddr.s_addr);
@@ -244,4 +244,8 @@ void release(int s, struct sockaddr_in skt)
         exit(1);
     }
     status = EXIT;
+}
+void exited(int s, struct sockaddr_in skt)
+{
+    //pass
 }
